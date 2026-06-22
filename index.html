@@ -107,6 +107,10 @@
   .rec{display:flex; justify-content:space-between; align-items:baseline; padding:9px 0; border-bottom:1px solid var(--hair);}
   .rec:last-child{border-bottom:none;} .rec span{font-size:14px; color:var(--muted);}
   .rec b{font-size:16px; font-weight:700;} .rec b small{color:var(--muted); font-weight:400; font-size:12px;}
+  .info{display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%;
+    border:1px solid var(--hair); color:var(--muted); font-size:11px; font-weight:700; font-style:italic;
+    margin-left:7px; cursor:pointer; vertical-align:middle;}
+  .info:active{color:var(--accent); border-color:var(--accent);}
   .btn{display:inline-flex; align-items:center; justify-content:center; gap:6px; background:var(--accent); color:#10130a;
     border:none; border-radius:15px; font-size:16px; font-weight:700; padding:14px 18px; width:100%; cursor:pointer; box-shadow:0 6px 18px rgba(197,242,74,.22);}
   .btn:active{transform:scale(.985);}
@@ -247,11 +251,19 @@
   </div>
 </div>
 
+<div class="modal-bg" id="info-bg">
+  <div class="modal">
+    <p id="info-title" style="font-weight:700; font-size:17px; margin-bottom:8px"></p>
+    <p id="info-msg" style="font-weight:400; color:#d4d4d9; font-size:15px"></p>
+    <button class="btn ghost" onclick="closeInfo()">Compris</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
 /* ===== Version ===== */
-const VERSION='v0.6';
+const VERSION='v0.7';
 const VERSION_DATE='22 juin 2026';
 const MAX_CONFIGS=3;
 
@@ -337,7 +349,6 @@ function groupByDate(list){ const m={}; list.forEach(x=>{ (m[x.date]=m[x.date]||
 function statusLabel(s){ return s==='success'?'Réussi':s==='partial'?'Partiel':'Échoué'; }
 function statusBadge(s){ return s==='success'?'<span class="badge b-ok">Réussi</span>':s==='partial'?'<span class="badge b-part">Partiel</span>':'<span class="badge b-fail">Échoué</span>'; }
 function lastForMachine(id){ const l=state.exercises.filter(x=>x.machineId===id).sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id)); return l[0]||null; }
-function exVol(x){ return Math.round(Number(x.weight)*Number(x.sets)*Number(x.reps)); }
 function ex1rm(x){ return Math.round(Number(x.weight)*(1+Number(x.reps)/30)); } // Epley
 function machineMaxWeight(id){ const ws=state.exercises.filter(x=>x.machineId===id).map(x=>Number(x.weight)); return ws.length?Math.max(...ws):null; }
 function machineCount(id){ return state.exercises.filter(x=>x.machineId===id).length; }
@@ -440,7 +451,6 @@ function openMachine(id){
     chart=`<h2>Progression</h2><div class="card">
       <p class="note" style="margin-top:0">Du ${fmtDate(first)} au ${fmtDate(last)} · ${chron.length} exercices</p>
       ${metricBlock('Poids (kg)',chron.map(x=>Number(x.weight)),' kg','var(--accent)')}
-      ${metricBlock('Volume (kg)',chron.map(exVol),' kg','var(--viol)')}
       ${metricBlock('Séries',chron.map(x=>Number(x.sets)),'','var(--amber)')}
       ${metricBlock('Répétitions',chron.map(x=>Number(x.reps)),'','var(--blue)')}</div>`;
   } else if(chron.length===1){
@@ -449,11 +459,10 @@ function openMachine(id){
   if(ss.length>=1){
     const weights=ss.map(x=>Number(x.weight)); const maxW=Math.max(...weights);
     const recEx=ss.find(x=>Number(x.weight)===maxW);
-    const maxVol=Math.max(...ss.map(exVol)); const max1=Math.max(...ss.map(ex1rm));
+    const max1=Math.max(...ss.map(ex1rm));
     records=`<h2>Records</h2><div class="card">
       <div class="rec"><span>🏆 Poids max</span><b>${maxW} kg <small>le ${fmtDate(recEx.date)}</small></b></div>
-      <div class="rec"><span>Volume max (1 exo)</span><b>${maxVol} kg</b></div>
-      <div class="rec"><span>1RM estimé</span><b>${max1} kg</b></div></div>`;
+      <div class="rec"><span>1RM estimé<span class="info" onclick="info1RM()">i</span></span><b>${max1} kg</b></div></div>`;
   }
   const body=ss.length? `<h2>Historique</h2>`+groupByDate(ss).map(g=>`<div class="dayhead"><span class="d">${fmtDate(g.date)}</span></div>${g.items.map(exerciseCard).join('')}`).join('')
     : `<div class="card"><div class="empty">Pas encore d'exercice pour cette machine.</div></div>`;
@@ -561,6 +570,12 @@ document.getElementById('confirm-yes').onclick=()=>{ const cb=confirmYes; closeC
 document.getElementById('confirm-no').onclick=closeConfirm;
 document.getElementById('confirm-bg').addEventListener('click',e=>{ if(e.target.id==='confirm-bg') closeConfirm(); });
 
+/* ===== Info modal ===== */
+function showInfo(title,msg){ document.getElementById('info-title').textContent=title; document.getElementById('info-msg').textContent=msg; document.getElementById('info-bg').classList.add('open'); }
+function closeInfo(){ document.getElementById('info-bg').classList.remove('open'); }
+function info1RM(){ showInfo('Qu\u2019est-ce que le 1RM ?','Le 1RM (« one-rep max », ou répétition maximale) est le poids le plus lourd que tu pourrais soulever une seule fois sur cet exercice. Le tester en vrai étant risqué, l\'app l\'estime à partir de ton poids et de tes répétitions (formule d\'Epley : poids × (1 + reps ÷ 30)). C\'est un repère pratique pour suivre ta force globale, même quand tu changes de nombre de répétitions.'); }
+document.getElementById('info-bg').addEventListener('click',e=>{ if(e.target.id==='info-bg') closeInfo(); });
+
 /* ===== Tabs ===== */
 function goTab(t){ currentTab=t; ['today','week','machines','settings'].forEach(x=>document.getElementById('tab-'+x).classList.toggle('active',x===t)); closeOverlays(); render(); }
 
@@ -649,10 +664,10 @@ function deleteCurrent(){
 /* ===== Export (lecture) ===== */
 function csvCell(v){ v=String(v??''); return /[",\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
 function buildCSV(){
-  const rows=[['Date','Machine','Poids (kg)','Series','Repetitions','Volume (kg)','Resultat','Configurations','Commentaire']];
+  const rows=[['Date','Machine','Poids (kg)','Series','Repetitions','Resultat','Configurations','Commentaire']];
   [...state.exercises].sort((a,b)=>a.date.localeCompare(b.date)).forEach(x=>{
     const cfg=(x.configs||[]).map((c,i)=>'Configuration '+(i+1)+': '+c).join(' | ');
-    rows.push([x.date,machineName(x.machineId),x.weight,x.sets,x.reps,exVol(x),statusLabel(x.status),cfg,x.comment||'']); });
+    rows.push([x.date,machineName(x.machineId),x.weight,x.sets,x.reps,statusLabel(x.status),cfg,x.comment||'']); });
   return rows.map(r=>r.map(csvCell).join(',')).join('\r\n');
 }
 function buildMD(){
@@ -660,7 +675,7 @@ function buildMD(){
   groupByDate([...state.exercises]).slice().reverse().forEach(g=>{
     md+='## Séance du '+fmtDateFull(g.date)+'\n\n';
     g.items.forEach(x=>{ md+='### '+machineName(x.machineId)+'\n';
-      md+='- **Poids :** '+x.weight+' kg\n- **Séries × répétitions :** '+x.sets+' × '+x.reps+'\n- **Volume :** '+exVol(x)+' kg\n- **Résultat :** '+statusLabel(x.status)+'\n';
+      md+='- **Poids :** '+x.weight+' kg\n- **Séries × répétitions :** '+x.sets+' × '+x.reps+'\n- **Résultat :** '+statusLabel(x.status)+'\n';
       (x.configs||[]).forEach((c,i)=>{ md+='- **Configuration '+(i+1)+' :** '+c+'\n'; });
       if(x.comment) md+='- **Commentaire :** '+x.comment+'\n'; md+='\n'; }); });
   return md;

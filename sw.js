@@ -1,4 +1,4 @@
-const CACHE='edoworkout-v1';
+const CACHE='edoworkout-v0.7';
 const ASSETS=['./','./index.html','https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS).catch(()=>{})));self.skipWaiting();});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==CACHE).map(x=>caches.delete(x)))));self.clients.claim();});
