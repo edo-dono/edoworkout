@@ -9,10 +9,21 @@
 <meta name="apple-mobile-web-app-title" content="edoWorkout">
 <meta name="theme-color" content="#0b0c0e">
 <title>edoWorkout</title>
+
+<!-- Police Roboto (chargée en ligne ; repli sur la police système hors-ligne) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
 <style>
+  /* ============================================================
+     edoWorkout — feuille de style
+     Thème sombre "liquid glass", couleur d'accent jaune-vert pomme.
+     Astuce : la plupart des surfaces sont translucides (--glass*)
+     pour laisser transparaître le fond d'écran dégradé.
+     ============================================================ */
+
+  /* ---- Variables globales (couleurs, verre, encoches iOS) ---- */
   :root{
     --bg:#0b0c0e; --text:#f4f4f5; --muted:#9a9aa1;
     --accent:#c5f24a; --accent-dim:rgba(197,242,74,.16);
@@ -22,34 +33,57 @@
     --safe-top:env(safe-area-inset-top); --safe-bot:env(safe-area-inset-bottom);
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  html{margin:0; padding:0; color-scheme:dark; min-height:100%;
+
+  /* Le fond d'écran (dégradé + halos) est porté par <html> pour
+     couvrir tout l'écran, même quand la page est courte. */
+  html{
+    margin:0; padding:0; color-scheme:dark; min-height:100%;
     background:
       radial-gradient(60vw 60vw at 12% 4%, rgba(197,242,74,.34), transparent 60%),
       radial-gradient(62vw 62vw at 88% 96%, rgba(74,150,242,.30), transparent 60%),
       linear-gradient(160deg,#1c2027 0%,#121419 52%,#0c0e11 100%);
-    background-attachment:fixed; background-repeat:no-repeat;}
-  body{margin:0; padding:0; color:var(--text); background:transparent; min-height:100dvh;
+    background-attachment:fixed; background-repeat:no-repeat;
+  }
+  body{
+    margin:0; padding:0; color:var(--text); background:transparent; min-height:100dvh;
     font-family:'Roboto',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; -webkit-font-smoothing:antialiased;
-    padding-bottom:calc(84px + var(--safe-bot));}
+    padding-bottom:calc(84px + var(--safe-bot)); /* place pour la barre d'onglets */
+  }
   button,input,select,textarea{font-family:inherit;}
   select option{background:#1b1d21; color:var(--text);}
-  .appbar{position:sticky; top:0; z-index:35; background:var(--glass-strong);
+
+  /* ---- En-tête (bannière) : nom de l'app centré ---- */
+  .appbar{
+    position:sticky; top:0; z-index:35; background:var(--glass-strong);
     backdrop-filter:blur(24px) saturate(1.8); -webkit-backdrop-filter:blur(24px) saturate(1.8);
-    border-bottom:1px solid var(--hi); padding:calc(var(--safe-top) + 11px) 16px 12px;}
-  .appbar .inner{max-width:560px; margin:0 auto;}
+    border-bottom:1px solid var(--hi); padding:calc(var(--safe-top) + 11px) 16px 12px;
+  }
+  .appbar .inner{max-width:560px; margin:0 auto; text-align:center;} /* centrage du titre */
   .brand{font-size:19px; font-weight:700; letter-spacing:-.3px;}
   .brand .kanji{color:var(--accent); font-size:23px; margin-right:7px; line-height:1;}
+
+  /* ---- Conteneur principal des onglets ---- */
   #app{max-width:560px; margin:0 auto; padding:14px 16px 16px; position:relative;}
   h1{font-size:26px; font-weight:700; letter-spacing:-.5px; margin:2px 0 2px;}
   h2{font-size:12.5px; font-weight:600; text-transform:uppercase; letter-spacing:.7px; color:var(--muted); margin:26px 0 12px;}
   .sub{color:var(--muted); font-size:14px; margin:0 0 4px;}
   .muted{color:var(--muted);} .accent{color:var(--accent);}
-  .card{position:relative; background:var(--glass); backdrop-filter:blur(22px) saturate(1.7); -webkit-backdrop-filter:blur(22px) saturate(1.7);
-    border:1px solid var(--hair); border-radius:20px; padding:16px; overflow:hidden; box-shadow:inset 0 1px 0 var(--hi), 0 10px 34px rgba(0,0,0,.34);}
+
+  /* ---- Carte en verre (brique visuelle de base) ---- */
+  .card{
+    position:relative; background:var(--glass);
+    backdrop-filter:blur(22px) saturate(1.7); -webkit-backdrop-filter:blur(22px) saturate(1.7);
+    border:1px solid var(--hair); border-radius:20px; padding:16px; overflow:hidden;
+    box-shadow:inset 0 1px 0 var(--hi), 0 10px 34px rgba(0,0,0,.34);
+  }
   .card::before{content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none; background:linear-gradient(180deg, rgba(255,255,255,.06), transparent 38%);}
   .row{display:flex; align-items:center; gap:12px;} .between{justify-content:space-between;}
+
+  /* ---- Animation d'apparition au changement d'onglet ---- */
   @keyframes tabIn{from{opacity:0; transform:translateY(10px) scale(.985);} to{opacity:1; transform:none;}}
   .anim{animation:tabIn .34s cubic-bezier(.33,.1,.25,1);}
+
+  /* ---- Onglet "Cette semaine" : anneau d'objectif + pastilles ---- */
   .goalwrap{display:flex; align-items:center; gap:18px; position:relative;}
   .ring{position:relative; width:84px; height:84px; flex:none;}
   .ring svg{transform:rotate(-90deg);}
@@ -66,18 +100,24 @@
   .dot.done{background:var(--accent); border-color:var(--accent); color:#10130a; box-shadow:0 0 14px rgba(197,242,74,.4);}
   .dot.today{box-shadow:0 0 0 2px var(--accent);}
   .day .dnum{font-size:10px; color:var(--muted);}
+
+  /* ---- Régularité (5 dernières semaines) ---- */
   .histweek{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
   .histweek .wk{font-size:10.5px; color:var(--muted); width:92px; flex:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .histweek .wk.cur{color:var(--accent); font-weight:700;}
   .minidots{display:flex; gap:6px;}
   .mini{width:14px; height:14px; border-radius:4px; background:rgba(255,255,255,.06);}
   .mini.done{background:var(--accent);}
+
+  /* ---- Équilibre par groupe musculaire (barres) ---- */
   .bal{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
   .bal:last-child{margin-bottom:0;}
   .bal .g{width:88px; flex:none; font-size:13px; font-weight:600;}
   .bal .track{flex:1; height:9px; border-radius:6px; background:rgba(255,255,255,.06); overflow:hidden;}
   .bal .fill{height:100%; background:var(--accent); border-radius:6px;}
   .bal .n{width:22px; text-align:right; font-size:12px; color:var(--muted);}
+
+  /* ---- Liste des machines + vignettes d'illustration ---- */
   .mlist{display:flex; flex-direction:column; gap:10px;}
   .mcard{display:flex; align-items:center; justify-content:space-between; cursor:pointer;}
   .mcard .name{font-size:16px; font-weight:600;}
@@ -90,12 +130,16 @@
   .mhero{width:88px; height:88px; border-radius:20px; background:rgba(255,255,255,.05); border:1px solid var(--hair);
     display:flex; align-items:center; justify-content:center; color:var(--accent); margin:2px 0 12px;}
   .mhero svg{width:58px; height:58px;}
+
+  /* ---- Badges de résultat / type ---- */
   .badge{display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:600; padding:3px 9px; border-radius:20px;}
   .b-ok{background:var(--accent-dim); color:var(--accent);}
   .b-part{background:rgba(245,196,81,.16); color:var(--amber);}
   .b-fail{background:rgba(255,107,107,.16); color:var(--red);}
   .b-cardio{background:rgba(90,169,255,.16); color:var(--blue);}
   .pr{color:var(--accent); font-weight:700; margin-left:6px; font-size:13px;}
+
+  /* ---- Cartes d'exercice (historique / séance du jour) ---- */
   .dayhead{display:flex; align-items:baseline; justify-content:space-between; margin:2px 2px 10px;}
   .dayhead .d{font-size:15px; font-weight:700;} .dayhead .c{font-size:12px; color:var(--muted);}
   .ex{margin-bottom:10px; cursor:pointer;}
@@ -107,11 +151,13 @@
   .tag b{color:var(--accent); font-weight:600;}
   .cmt{margin-top:10px; font-size:14px; color:#d4d4d9; line-height:1.4; background:rgba(255,255,255,.05); border-radius:10px; padding:9px 11px;}
   .empty{text-align:center; color:var(--muted); padding:28px 12px; font-size:14px; line-height:1.5;}
+
+  /* ---- Bloc de progression (courbes) + records ---- */
   .metric{margin-bottom:16px;} .metric:last-child{margin-bottom:0;}
   .metric .mh{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px;}
   .metric .mt{font-size:13px; font-weight:600; color:var(--muted);}
   .metric .mv{font-size:14px; font-weight:700;} .metric .mv small{color:var(--muted); font-weight:400; font-size:12px;}
-  .chartwrap{position:relative; touch-action:pan-y;}
+  .chartwrap{position:relative; touch-action:pan-y;}                /* zone tactile de la courbe */
   .cmark{position:absolute; top:0; bottom:0; width:1.5px; background:rgba(255,255,255,.35); left:0; opacity:0; pointer-events:none;}
   .cmark.show{opacity:1;}
   .ctip{position:absolute; top:-6px; left:0; transform:translate(-50%,-100%); background:var(--glass-strong);
@@ -124,16 +170,28 @@
   .info{display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%;
     border:1px solid var(--hair); color:var(--muted); font-size:11px; font-weight:700; font-style:italic; margin-left:7px; cursor:pointer; vertical-align:middle;}
   .info:active{color:var(--accent); border-color:var(--accent);}
+
+  /* ---- Boutons ---- */
   .btn{display:inline-flex; align-items:center; justify-content:center; gap:6px; background:var(--accent); color:#10130a;
     border:none; border-radius:15px; font-size:16px; font-weight:700; padding:14px 18px; width:100%; cursor:pointer; box-shadow:0 6px 18px rgba(197,242,74,.22);}
   .btn:active{transform:scale(.985);}
   .btn.ghost{background:rgba(255,255,255,.07); color:var(--text); border:1px solid var(--hair); box-shadow:none; backdrop-filter:blur(10px);}
   .btn.danger{background:rgba(255,107,107,.12); color:var(--red); border:1px solid rgba(255,107,107,.28); box-shadow:none;}
   .btn.sm{padding:10px 14px; font-size:14px; border-radius:12px;}
+
+  /* ---- Boutons flottants : "Nouvel exercice" (centre) + "Repos" (bulle, gauche) ---- */
   .fab{position:fixed; left:50%; transform:translateX(-50%); bottom:calc(98px + var(--safe-bot)); background:var(--accent); color:#10130a;
     border:none; padding:14px 24px; border-radius:30px; font-size:16px; font-weight:700;
-    box-shadow:0 8px 26px rgba(0,0,0,.5), 0 0 22px rgba(197,242,74,.3); z-index:55; cursor:pointer; display:flex; align-items:center; gap:8px;}
+    box-shadow:0 8px 26px rgba(0,0,0,.5), 0 0 22px rgba(197,242,74,.3); z-index:55; cursor:pointer; display:none; align-items:center; gap:8px;}
   .fab:active{transform:translateX(-50%) scale(.96);}
+  .restfab{position:fixed; left:16px; bottom:calc(98px + var(--safe-bot)); width:54px; height:54px; border-radius:50%;
+    background:var(--glass-strong); backdrop-filter:blur(20px) saturate(1.8); -webkit-backdrop-filter:blur(20px) saturate(1.8);
+    border:1px solid var(--hi); color:var(--accent); display:none; align-items:center; justify-content:center;
+    z-index:55; cursor:pointer; box-shadow:0 8px 26px rgba(0,0,0,.5);}
+  .restfab svg{width:26px; height:26px;}
+  .restfab:active{transform:scale(.94);}
+
+  /* ---- Bandeau du minuteur de repos (apparaît pendant le repos) ---- */
   .restbar{position:fixed; left:12px; right:12px; bottom:calc(80px + var(--safe-bot)); z-index:58; max-width:536px; margin:0 auto;
     background:var(--glass-strong); backdrop-filter:blur(24px) saturate(1.8); -webkit-backdrop-filter:blur(24px) saturate(1.8);
     border:1px solid var(--hi); border-radius:16px; padding:11px 14px; display:none; box-shadow:0 8px 26px rgba(0,0,0,.5);}
@@ -145,6 +203,8 @@
   .restbar .rbtns button{background:rgba(255,255,255,.08); border:1px solid var(--hair); color:var(--text); border-radius:11px; padding:8px 13px; font-size:13px; font-weight:600; cursor:pointer;}
   .restprog{height:5px; border-radius:4px; background:rgba(255,255,255,.08); margin-top:9px; overflow:hidden;}
   .restprog>div{height:100%; background:var(--accent); width:100%; transition:width .35s linear;}
+
+  /* ---- Barre d'onglets (bas) ---- */
   .tabbar{position:fixed; bottom:0; left:0; right:0; background:var(--glass-strong); backdrop-filter:blur(28px) saturate(1.8);
     -webkit-backdrop-filter:blur(28px) saturate(1.8); border-top:1px solid var(--hi); display:flex; justify-content:space-around;
     padding:9px 4px calc(9px + var(--safe-bot)); z-index:60; box-shadow:0 -8px 30px rgba(0,0,0,.35);}
@@ -152,6 +212,8 @@
     background:none; border:none; cursor:pointer; padding:5px 2px; border-radius:14px; transition:color .25s, background .25s; white-space:nowrap;}
   .tab.active{color:#10130a; background:var(--accent);}
   .tab svg{width:23px; height:23px;}
+
+  /* ---- Écrans superposés (détail machine, édition machines) ---- */
   .screen{position:fixed; inset:0; background:rgba(12,13,16,.42); backdrop-filter:blur(30px) saturate(1.6);
     -webkit-backdrop-filter:blur(30px) saturate(1.6); z-index:40; overflow-y:auto;
     padding:calc(var(--safe-top) + 10px) 16px calc(96px + var(--safe-bot));
@@ -162,6 +224,8 @@
   .navbar{display:flex; align-items:center; margin-bottom:6px;}
   .back{background:none; border:none; color:var(--accent); font-size:16px; font-weight:600; display:flex; align-items:center; gap:2px; cursor:pointer; padding:6px 0;}
   .back:active{opacity:.5;}
+
+  /* ---- Feuille du bas (formulaire d'exercice) ---- */
   .sheet-bg{position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:70; display:none; backdrop-filter:blur(3px);}
   .sheet-bg.open{display:block;}
   .sheet{position:fixed; left:0; right:0; bottom:0; z-index:71; max-height:93vh; overflow-y:auto; background:var(--glass-strong);
@@ -171,11 +235,13 @@
   .sheet.open{transform:translateY(0);}
   .grab{width:38px; height:5px; background:rgba(255,255,255,.25); border-radius:3px; margin:8px auto 16px;}
   .sheet h3{font-size:20px; font-weight:700; margin:0 0 16px;}
+
+  /* ---- Champs de formulaire ---- */
   label{display:block; font-size:13px; font-weight:600; color:var(--muted); margin:0 0 7px;}
   input,select,textarea{width:100%; background:rgba(255,255,255,.06); border:1px solid var(--hair); color:var(--text);
     border-radius:13px; padding:13px 14px; font-size:16px;}
   input:focus,select:focus,textarea:focus{outline:none; border-color:var(--accent); background:rgba(255,255,255,.09);}
-  input.bad{border-color:var(--red); background:rgba(255,107,107,.08);}
+  input.bad{border-color:var(--red); background:rgba(255,107,107,.08);}     /* champ invalide */
   textarea{resize:none; min-height:70px;}
   .field{margin-bottom:16px;}
   .two{display:flex; gap:12px;} .two>.field{flex:1;}
@@ -194,16 +260,23 @@
   .addcfg{background:none; border:1px dashed var(--hair); color:var(--accent); width:100%; border-radius:13px; padding:11px; font-size:14px; font-weight:600; cursor:pointer;}
   .medit{padding:12px; margin-bottom:10px;}
   .medit select{margin-top:2px;}
+
+  /* ---- Sélecteurs +/- (objectif, repos) ---- */
   .stepper{display:flex; align-items:center; gap:14px;}
   .stepper button{width:46px; height:46px; border-radius:13px; background:rgba(255,255,255,.06); border:1px solid var(--hair); color:var(--text); font-size:22px; cursor:pointer;}
   .stepper button:disabled{opacity:.35;}
   .stepper .val{font-size:25px; font-weight:700; min-width:42px; text-align:center;}
+
   .note{font-size:12px; color:var(--muted); line-height:1.5; margin-top:8px;}
   .ver{text-align:center; color:var(--muted); font-size:12px; margin-top:26px;} .ver b{color:var(--text); font-weight:600;}
+
+  /* ---- Toast (message éphémère) ---- */
   .toast{position:fixed; left:50%; transform:translateX(-50%); bottom:calc(160px + var(--safe-bot)); background:var(--glass-strong);
     backdrop-filter:blur(20px); border:1px solid var(--hi); color:var(--text); padding:11px 18px; border-radius:14px;
     font-size:14px; font-weight:600; z-index:90; opacity:0; transition:opacity .25s; pointer-events:none; max-width:80%; text-align:center;}
   .toast.show{opacity:1;}
+
+  /* ---- Fenêtres modales (confirmation / info) ---- */
   .modal-bg{position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:80; display:none; backdrop-filter:blur(4px); padding:24px;}
   .modal-bg.open{display:flex; align-items:center; justify-content:center;}
   .modal{background:var(--glass-strong); backdrop-filter:blur(30px) saturate(1.8); -webkit-backdrop-filter:blur(30px) saturate(1.8);
@@ -214,12 +287,19 @@
 </head>
 <body>
 
+<!-- En-tête : titre centré -->
 <header class="appbar"><div class="inner"><span class="brand"><span class="kanji">筋</span>edo<b style="color:var(--accent)">Workout</b></span></div></header>
 
+<!-- Conteneur où chaque onglet est rendu -->
 <div id="app"></div>
 
+<!-- Boutons flottants : nouvel exercice (centre) + lancer le repos (bulle, bas-gauche) -->
 <button class="fab" id="fab" onclick="openForm({})">＋ Nouvel exercice</button>
+<button class="restfab" id="restfab" onclick="startRest(state.settings.restSeconds)" title="Lancer le repos">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6"/><path d="M12 5V2"/><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 1.5"/></svg>
+</button>
 
+<!-- Bandeau du minuteur de repos (countdown) -->
 <div class="restbar" id="restbar">
   <div class="rrow">
     <div><div class="rlabel">Repos</div><div class="rtime" id="rest-time">60 s</div></div>
@@ -228,11 +308,14 @@
   <div class="restprog"><div id="rest-fill"></div></div>
 </div>
 
+<!-- Écrans superposés -->
 <div class="screen" id="screen-machine"><div class="inner" id="screen-machine-inner"></div></div>
 <div class="screen" id="screen-medit"><div class="inner" id="screen-medit-inner"></div></div>
 
+<!-- Champ caché pour l'import de sauvegarde -->
 <input type="file" id="import-file" accept=".json,application/json" style="display:none">
 
+<!-- Barre d'onglets -->
 <div class="tabbar">
   <button class="tab active" id="tab-today" onclick="goTab('today')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11M3 3l1 1M20 20l1 1M18 22l4-4M2 6l4-4M7 17l-5 5M22 7l-5-5"/></svg>Aujourd'hui</button>
@@ -244,6 +327,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Réglages</button>
 </div>
 
+<!-- Formulaire (feuille du bas) : champs muscu OU cardio selon la machine -->
 <div class="sheet-bg" id="sheet-bg" onclick="closeForm()"></div>
 <div class="sheet" id="sheet">
   <div class="grab"></div>
@@ -251,6 +335,7 @@
   <div class="field" id="date-readonly" style="display:none"><label>Séance</label><div class="readonly" id="f-date-label"></div></div>
   <div class="field"><label>Machine</label><select id="f-machine"></select></div>
 
+  <!-- Champs MUSCULATION -->
   <div id="fields-strength">
     <div class="two">
       <div class="field"><label>Poids (kg)</label>
@@ -274,6 +359,7 @@
       <button class="addcfg" id="add-cfg" onclick="addConfigRow('')">＋ Ajouter une configuration</button></div>
   </div>
 
+  <!-- Champs CARDIO -->
   <div id="fields-cardio" style="display:none">
     <div class="field"><label>Programme</label><select id="f-prog"></select></div>
     <div class="two">
@@ -293,6 +379,7 @@
   <button class="btn ghost" style="margin-top:8px" onclick="closeForm()">Annuler</button>
 </div>
 
+<!-- Modale de confirmation (réutilisable) -->
 <div class="modal-bg" id="confirm-bg">
   <div class="modal">
     <p id="confirm-msg"></p>
@@ -300,6 +387,7 @@
     <button class="btn ghost" id="confirm-no">Annuler</button>
   </div>
 </div>
+<!-- Modale d'information -->
 <div class="modal-bg" id="info-bg">
   <div class="modal">
     <p id="info-title" style="font-weight:700; font-size:17px; margin-bottom:8px"></p>
@@ -311,18 +399,34 @@
 <div class="toast" id="toast"></div>
 
 <script>
-/* ===== Version ===== */
-const VERSION='v0.9';
-const VERSION_DATE='22 juin 2026';
-const MAX_CONFIGS=3;
+/* ================================================================
+   edoWorkout — logique applicative
+
+   ARCHITECTURE EN BREF
+   - `state` : objet unique { settings, machines[], exercises[] }.
+   - Persistance : IndexedDB (principal) + localStorage (secours),
+     écrits ensemble par save(). Au démarrage on lit l'un OU l'autre.
+   - Rendu : 4 onglets rendus dans #app via setView(html). Deux
+     écrans superposés (détail machine, édition machines).
+   - Une "séance" = tous les exercices d'une même date (implicite).
+   - Deux types de machine : 'strength' (muscu) et 'cardio',
+     avec des champs d'exercice différents.
+   ================================================================ */
+
+/* ===== Constantes de version ===== */
+const VERSION='alpha-v1.0';
+const VERSION_DATE='23 juin 2026';
+const MAX_CONFIGS=3;                                  // configs max par exercice muscu
 const CARDIO_PROGRAMS=['Manuel','Puissance','Fréquence cardiaque','Colline','Objectif +','Test de forme'];
 
-/* ===== App icon ===== */
+/* ===== Icône de l'app (PWA / écran d'accueil) ===== */
 const ICON_SVG='<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" rx="110" fill="#c5f24a"/><text x="256" y="370" font-size="340" text-anchor="middle" font-family="-apple-system,Roboto,sans-serif" font-weight="700" fill="#10130a">筋</text></svg>';
 const ICON_URL='data:image/svg+xml,'+encodeURIComponent(ICON_SVG);
 
-/* ===== Muscle / categories ===== */
+/* ===== Catégories / groupes musculaires ===== */
 const GROUPS=['Jambes','Pectoraux','Dos','Épaules','Bras','Abdos','Cardio','Autre'];
+
+// Groupe par défaut selon le nom (utilisé pour migrer d'anciennes données)
 const GROUP_BY_NAME={
   'leg press':'Jambes','leg extension':'Jambes','leg curl':'Jambes','hip abduction':'Jambes','hip adduction':'Jambes',
   'chest press':'Pectoraux','pectoral fly':'Pectoraux','pull down':'Dos',
@@ -330,7 +434,7 @@ const GROUP_BY_NAME={
   'vélo elliptique':'Cardio','escaliers mécaniques':'Cardio',"vélo d'appartement":'Cardio','rameur':'Cardio','tapis de course':'Cardio','vélo couché':'Cardio'
 };
 
-/* ===== Machine illustrations ===== */
+/* ===== Illustrations des machines (tracés SVG, clé = nom en minuscules) ===== */
 const MACHINE_ART={
   'leg press':'<circle cx="30" cy="34" r="7"/><path d="M18 68 L30 42"/><path d="M18 68 H36"/><path d="M16 68 V56"/><path d="M34 63 L56 50"/><path d="M56 50 L66 60"/><path d="M70 44 L78 66"/><path d="M72 50 H86"/><path d="M72 58 H86"/>',
   'leg extension':'<circle cx="28" cy="34" r="7"/><path d="M22 68 V42"/><path d="M22 68 H46"/><path d="M46 66 H60"/><path d="M60 66 L78 50"/><path d="M74 46 L82 54"/>',
@@ -351,16 +455,19 @@ const MACHINE_ART={
   'tapis de course':'<path d="M18 74 H66 L74 66"/><path d="M22 74 L24 66 H68"/><circle cx="44" cy="28" r="6"/><path d="M44 34 V48"/><path d="M44 40 L34 44"/><path d="M44 40 L54 36"/><path d="M44 48 L36 60"/><path d="M44 48 L54 60"/>',
   'vélo couché':'<circle cx="26" cy="66" r="10"/><circle cx="72" cy="68" r="7"/><path d="M26 66 H64"/><path d="M64 66 L72 68"/><path d="M26 66 L18 50 H34"/><path d="M64 66 L52 54"/><circle cx="22" cy="46" r="5"/>'
 };
-const MACHINE_ART_GENERIC='<path d="M30 36 V60"/><path d="M22 42 V54"/><path d="M66 36 V60"/><path d="M74 42 V54"/><path d="M30 48 H66"/>';
+const MACHINE_ART_GENERIC='<path d="M30 36 V60"/><path d="M22 42 V54"/><path d="M66 36 V60"/><path d="M74 42 V54"/><path d="M30 48 H66"/>'; // haltère par défaut
+
+/** Renvoie le SVG d'illustration d'une machine (par son nom). */
 function machineArt(name){
   const inner=MACHINE_ART[(name||'').trim().toLowerCase()]||MACHINE_ART_GENERIC;
   return `<svg viewBox="0 0 96 96" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
 }
 
-/* ===== State + storage ===== */
+/* ===== État + machines par défaut ===== */
 const STORE='edoworkout';
 const DEFAULT_MACHINES=[
-  {name:'Leg press',group:'Jambes',type:'strength'},{name:'Leg extension',group:'Jambes',type:'strength'},{name:'Leg curl',group:'Jambes',type:'strength'},{name:'Hip abduction',group:'Jambes',type:'strength'},
+  {name:'Leg press',group:'Jambes',type:'strength'},{name:'Leg extension',group:'Jambes',type:'strength'},
+  {name:'Leg curl',group:'Jambes',type:'strength'},{name:'Hip abduction',group:'Jambes',type:'strength'},
   {name:'Chest press',group:'Pectoraux',type:'strength'},{name:'Pectoral fly',group:'Pectoraux',type:'strength'},
   {name:'Pull down',group:'Dos',type:'strength'},
   {name:'Shoulder press',group:'Épaules',type:'strength'},{name:'Rear deltoid',group:'Épaules',type:'strength'},
@@ -371,13 +478,18 @@ const DEFAULT_MACHINES=[
   {name:'Tapis de course',group:'Cardio',type:'cardio'},{name:'Vélo couché',group:'Cardio',type:'cardio'}
 ];
 let state={ settings:{weeklyGoal:3,restSeconds:60}, machines:[], exercises:[] };
-let storagePersisted=false;
+let storagePersisted=false;                          // stockage persistant accordé par le navigateur ?
 
+/** Génère un identifiant court unique. */
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+/** Complète/corrige l'état chargé (valeurs par défaut, migrations légères). */
 function normalize(){
-  if(!state.machines||!state.machines.length) state.machines=DEFAULT_MACHINES.map(m=>({id:uid(),name:m.name,group:m.group,type:m.type}));
+  if(!state.machines||!state.machines.length){
+    state.machines=DEFAULT_MACHINES.map(m=>({id:uid(),name:m.name,group:m.group,type:m.type}));
+  }
   state.machines.forEach(m=>{
-    if((m.name||'').trim().toLowerCase()==='hip adduction') m.name='Hip abduction';
+    if((m.name||'').trim().toLowerCase()==='hip adduction') m.name='Hip abduction'; // correction de nom
     if(!m.type) m.type='strength';
     if(!m.group) m.group=(m.type==='cardio')?'Cardio':(GROUP_BY_NAME[(m.name||'').trim().toLowerCase()]||'Autre');
   });
@@ -386,73 +498,117 @@ function normalize(){
   state.settings.restSeconds=Math.max(15,Math.min(300,state.settings.restSeconds||60));
   if(!state.exercises) state.exercises=[];
 }
+
+/** Lit l'état depuis localStorage (avec migration des anciennes clés). */
 function readLocal(){
   try{
-    const r=localStorage.getItem(STORE); if(r) return JSON.parse(r);
-    const v2=localStorage.getItem('muscu-app-v2'); if(v2){ const o=JSON.parse(v2); return {settings:o.settings,machines:o.machines,exercises:o.exercises||[]}; }
-    const v1=localStorage.getItem('muscu-app-v1'); if(v1){ const o=JSON.parse(v1); return {settings:o.settings,machines:o.machines,
+    const r=localStorage.getItem(STORE);
+    if(r) return JSON.parse(r);
+    // Migrations depuis les anciennes versions
+    const v2=localStorage.getItem('muscu-app-v2');
+    if(v2){ const o=JSON.parse(v2); return {settings:o.settings,machines:o.machines,exercises:o.exercises||[]}; }
+    const v1=localStorage.getItem('muscu-app-v1');
+    if(v1){ const o=JSON.parse(v1); return {settings:o.settings,machines:o.machines,
       exercises:(o.sessions||[]).map(s=>({id:s.id||uid(),machineId:s.machineId,date:s.date,weight:s.weight,sets:s.sets,reps:s.reps,status:s.status,configs:s.configs||[],comment:s.comment||''}))}; }
   }catch(e){ console.warn(e); }
   return null;
 }
-function save(){ try{ localStorage.setItem(STORE,JSON.stringify(state)); }catch(e){ console.warn(e); } idbSet(state); }
 
-/* IndexedDB */
+/** Sauvegarde l'état dans les DEUX stockages (localStorage + IndexedDB). */
+function save(){
+  try{ localStorage.setItem(STORE,JSON.stringify(state)); }catch(e){ console.warn(e); }
+  idbSet(state);
+}
+
+/* ----- IndexedDB : petite base clé/valeur (stockage principal) ----- */
 const DB_NAME='edoworkout-db', DB_STORE='kv', DB_KEY='state';
 let db=null;
-function idbOpen(){ return new Promise(res=>{ try{
-  const r=indexedDB.open(DB_NAME,1);
-  r.onupgradeneeded=()=>{ try{ r.result.createObjectStore(DB_STORE); }catch(e){} };
-  r.onsuccess=()=>res(r.result); r.onerror=()=>res(null);
-}catch(e){ res(null); } }); }
-function idbGet(){ return new Promise(res=>{ if(!db) return res(null);
-  try{ const req=db.transaction(DB_STORE,'readonly').objectStore(DB_STORE).get(DB_KEY);
-    req.onsuccess=()=>res(req.result||null); req.onerror=()=>res(null);
-  }catch(e){ res(null); } }); }
-function idbSet(val){ try{ if(!db) return; db.transaction(DB_STORE,'readwrite').objectStore(DB_STORE).put(val,DB_KEY); }catch(e){} }
+function idbOpen(){
+  return new Promise(res=>{
+    try{
+      const r=indexedDB.open(DB_NAME,1);
+      r.onupgradeneeded=()=>{ try{ r.result.createObjectStore(DB_STORE); }catch(e){} };
+      r.onsuccess=()=>res(r.result);
+      r.onerror=()=>res(null);
+    }catch(e){ res(null); }
+  });
+}
+function idbGet(){
+  return new Promise(res=>{
+    if(!db) return res(null);
+    try{
+      const req=db.transaction(DB_STORE,'readonly').objectStore(DB_STORE).get(DB_KEY);
+      req.onsuccess=()=>res(req.result||null);
+      req.onerror=()=>res(null);
+    }catch(e){ res(null); }
+  });
+}
+function idbSet(val){ try{ if(db) db.transaction(DB_STORE,'readwrite').objectStore(DB_STORE).put(val,DB_KEY); }catch(e){} }
 
-/* ===== Helpers ===== */
+/* ===== Utilitaires dates & données ===== */
 const DAY_LETTER=['L','M','M','J','V','S','D'];
-function startOfWeek(d){ const x=new Date(d); const day=(x.getDay()+6)%7; x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x; }
+function startOfWeek(d){ const x=new Date(d); const day=(x.getDay()+6)%7; x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x; } // lundi
 function isoDate(d){ const x=new Date(d); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); }
 function todayISO(){ return isoDate(new Date()); }
 function fmtDate(iso){ return new Date(iso+'T00:00:00').toLocaleDateString('fr-CH',{weekday:'short',day:'numeric',month:'short'}); }
 function fmtDateFull(iso){ return new Date(iso+'T00:00:00').toLocaleDateString('fr-CH',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }
-function weekRangeLabel(start){ const e=new Date(start); e.setDate(start.getDate()+6);
-  const sM=start.toLocaleDateString('fr-CH',{month:'short'}); const eM=e.toLocaleDateString('fr-CH',{month:'short'});
-  return sM===eM ? start.getDate()+'–'+e.getDate()+' '+eM : start.getDate()+' '+sM+'–'+e.getDate()+' '+eM; }
+function weekRangeLabel(start){
+  const e=new Date(start); e.setDate(start.getDate()+6);
+  const sM=start.toLocaleDateString('fr-CH',{month:'short'}), eM=e.toLocaleDateString('fr-CH',{month:'short'});
+  return sM===eM ? start.getDate()+'–'+e.getDate()+' '+eM : start.getDate()+' '+sM+'–'+e.getDate()+' '+eM;
+}
 function machine(id){ return state.machines.find(m=>m.id===id); }
 function machineName(id){ const m=machine(id); return m?m.name:'(machine supprimée)'; }
 function machineGroup(id){ const m=machine(id); return (m&&m.group)||'Autre'; }
 function isCardioMachine(id){ const m=machine(id); return !!(m&&m.type==='cardio'); }
 function esc(t){ return (t||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-function gymDays(weekStart){ const a=isoDate(weekStart); const e=new Date(weekStart); e.setDate(e.getDate()+6); const b=isoDate(e);
-  const set=new Set(); state.exercises.forEach(x=>{ if(x.date>=a&&x.date<=b) set.add(x.date); }); return set; }
-function groupByDate(list){ const m={}; list.forEach(x=>{ (m[x.date]=m[x.date]||[]).push(x); });
-  return Object.keys(m).sort((a,b)=>b.localeCompare(a)).map(d=>({date:d,items:m[d]})); }
+
+/** Jours (dates) où au moins un exercice a été fait dans la semaine donnée. */
+function gymDays(weekStart){
+  const a=isoDate(weekStart), e=new Date(weekStart); e.setDate(e.getDate()+6); const b=isoDate(e);
+  const set=new Set();
+  state.exercises.forEach(x=>{ if(x.date>=a&&x.date<=b) set.add(x.date); });
+  return set;
+}
+/** Regroupe une liste d'exercices par date (du plus récent au plus ancien). */
+function groupByDate(list){
+  const m={};
+  list.forEach(x=>{ (m[x.date]=m[x.date]||[]).push(x); });
+  return Object.keys(m).sort((a,b)=>b.localeCompare(a)).map(d=>({date:d,items:m[d]}));
+}
 function statusLabel(s){ return s==='success'?'Réussi':s==='partial'?'Partiel':'Échoué'; }
 function statusBadge(s){ return s==='success'?'<span class="badge b-ok">Réussi</span>':s==='partial'?'<span class="badge b-part">Partiel</span>':'<span class="badge b-fail">Échoué</span>'; }
 function lastForMachine(id){ const l=state.exercises.filter(x=>x.machineId===id).sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id)); return l[0]||null; }
-function ex1rm(x){ return Math.round(Number(x.weight)*(1+Number(x.reps)/30)); }
+function ex1rm(x){ return Math.round(Number(x.weight)*(1+Number(x.reps)/30)); } // 1RM estimé (Epley)
 function machineMaxWeight(id){ const ws=state.exercises.filter(x=>x.machineId===id).map(x=>Number(x.weight)); return ws.length?Math.max(...ws):null; }
 function machineCount(id){ return state.exercises.filter(x=>x.machineId===id).length; }
+/** Nombre d'exercices par groupe musculaire pour la semaine en cours. */
 function weekGroupCounts(){
-  const ws=startOfWeek(new Date()); const a=isoDate(ws); const e=new Date(ws); e.setDate(e.getDate()+6); const b=isoDate(e);
-  const c={}; state.exercises.forEach(x=>{ if(x.date>=a&&x.date<=b){ const g=machineGroup(x.machineId); c[g]=(c[g]||0)+1; } }); return c;
+  const ws=startOfWeek(new Date()), a=isoDate(ws), e=new Date(ws); e.setDate(e.getDate()+6); const b=isoDate(e);
+  const c={};
+  state.exercises.forEach(x=>{ if(x.date>=a&&x.date<=b){ const g=machineGroup(x.machineId); c[g]=(c[g]||0)+1; } });
+  return c;
 }
 
-/* ===== Interactive chart ===== */
+/* ===== Courbe interactive (sparkline + repère au toucher) ===== */
 function chartHTML(values,dates,color,unit){
   if(values.length<2) return '';
-  const W=320,H=70,pad=8; const min=Math.min(...values),max=Math.max(...values),range=(max-min)||1,n=values.length;
-  const X=i=>pad+(i/(n-1))*(W-2*pad), Y=v=>H-pad-((v-min)/range)*(H-2*pad);
-  let d='',dots=''; values.forEach((v,i)=>{ d+=(i?'L':'M')+X(i).toFixed(1)+' '+Y(v).toFixed(1)+' ';
-    dots+=`<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="2.6" fill="${color}"/>`; });
+  const W=320,H=70,pad=8;
+  const min=Math.min(...values),max=Math.max(...values),range=(max-min)||1,n=values.length;
+  const X=i=>pad+(i/(n-1))*(W-2*pad);
+  const Y=v=>H-pad-((v-min)/range)*(H-2*pad);
+  let d='',dots='';
+  values.forEach((v,i)=>{
+    d+=(i?'L':'M')+X(i).toFixed(1)+' '+Y(v).toFixed(1)+' ';
+    dots+=`<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="2.6" fill="${color}"/>`;
+  });
   const area=d+`L ${X(n-1).toFixed(1)} ${H} L ${X(0).toFixed(1)} ${H} Z`;
   const svg=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block"><path d="${area}" fill="${color}" opacity="0.13"/><path d="${d}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>${dots}</svg>`;
+  // Données embarquées (encodées) pour l'interactivité
   const payload=encodeURIComponent(JSON.stringify({v:values,d:dates.map(fmtDate),u:unit}));
   return `<div class="chartwrap chart" data-series="${payload}">${svg}<div class="cmark"></div><div class="ctip"></div></div>`;
 }
+/** Active le repère tactile sur toutes les courbes d'un conteneur. */
 function initCharts(scope){
   (scope||document).querySelectorAll('.chart').forEach(el=>{
     if(el._init) return; el._init=true;
@@ -460,8 +616,10 @@ function initCharts(scope){
     const mark=el.querySelector('.cmark'), tip=el.querySelector('.ctip');
     const n=data.v.length, W=320, pad=8; let active=false;
     function show(clientX){
-      const r=el.getBoundingClientRect(); let ratio=(clientX-r.left)/r.width; ratio=Math.max(0,Math.min(1,ratio));
-      const idx=Math.round(ratio*(n-1)); const Xv=pad+(idx/(n-1))*(W-2*pad); const px=(Xv/W)*r.width;
+      const r=el.getBoundingClientRect();
+      let ratio=(clientX-r.left)/r.width; ratio=Math.max(0,Math.min(1,ratio));
+      const idx=Math.round(ratio*(n-1));
+      const px=((pad+(idx/(n-1))*(W-2*pad))/W)*r.width;
       mark.style.left=px+'px'; mark.classList.add('show');
       tip.textContent=data.d[idx]+' · '+data.v[idx]+data.u; tip.style.left=px+'px'; tip.classList.add('show');
     }
@@ -471,33 +629,56 @@ function initCharts(scope){
     el.addEventListener('pointerup',hide); el.addEventListener('pointercancel',hide);
   });
 }
+/** Bloc "métrique" = titre + dernière valeur (min/max) + courbe. */
 function metricBlock(title,values,dates,unit,color){
   const last=values[values.length-1],min=Math.min(...values),max=Math.max(...values);
   return `<div class="metric"><div class="mh"><span class="mt">${title}</span><span class="mv">${last}${unit} <small>· min ${min} / max ${max}</small></span></div>${chartHTML(values,dates,color,unit)}</div>`;
 }
 
-/* ===== Render ===== */
+/* ===== Rendu des onglets ===== */
 let currentTab='today';
-function setView(html){ const a=document.getElementById('app'); a.classList.remove('anim'); a.innerHTML=html; void a.offsetWidth; a.classList.add('anim'); }
+
+/** Remplace le contenu de #app, relance l'animation et REMONTE EN HAUT. */
+function setView(html){
+  const a=document.getElementById('app');
+  a.classList.remove('anim');
+  a.innerHTML=html;
+  void a.offsetWidth;                                 // force le redémarrage de l'animation
+  a.classList.add('anim');
+  window.scrollTo(0,0);                               // toujours afficher le haut de la page
+  document.documentElement.scrollTop=0;
+}
 function anyOverlayOpen(){ return document.getElementById('screen-machine').classList.contains('open')||document.getElementById('screen-medit').classList.contains('open'); }
 function closeOverlays(){ document.getElementById('screen-machine').classList.remove('open'); document.getElementById('screen-medit').classList.remove('open'); }
-function updateFab(){ const restShown=document.getElementById('restbar').classList.contains('show');
-  document.getElementById('fab').style.display=(currentTab==='today'&&!anyOverlayOpen()&&!restShown)?'flex':'none'; }
+
+/** Affiche/masque les boutons flottants (visibles seulement sur "Aujourd'hui",
+    hors écran superposé, et pas pendant le repos). */
+function updateFloating(){
+  const restShown=document.getElementById('restbar').classList.contains('show');
+  const visible=(currentTab==='today' && !anyOverlayOpen() && !restShown);
+  document.getElementById('fab').style.display=visible?'flex':'none';
+  document.getElementById('restfab').style.display=visible?'flex':'none';
+}
+
+/** Rend l'onglet courant. */
 function render(){
   if(currentTab==='today') renderToday();
   else if(currentTab==='week') renderWeek();
   else if(currentTab==='machines') renderMachines();
   else if(currentTab==='settings') renderSettings();
-  updateFab();
+  updateFloating();
 }
+
+/** Carte d'un exercice (rendu différent muscu / cardio). */
 function exerciseCard(x){
-  const cardio=isCardioMachine(x.machineId);
-  if(cardio){
+  // --- Cardio ---
+  if(isCardioMachine(x.machineId)){
     return `<div class="card ex" onclick="editExercise('${x.id}')">
       <div class="top"><div class="nm">${esc(machineName(x.machineId))}</div><span class="badge b-cardio">Cardio</span></div>
       <div class="row between"><div class="big">${x.duree} min <small>·</small> Niv. ${x.niveau} <small>·</small> ${esc(x.programme||'')}</div></div>
       ${x.comment?`<div class="cmt">${esc(x.comment)}</div>`:''}</div>`;
   }
+  // --- Musculation ---
   const max=machineMaxWeight(x.machineId);
   const isPR = max!=null && machineCount(x.machineId)>=2 && Number(x.weight)===max && Number(x.weight)>0;
   const configs=(x.configs||[]).map((c,i)=>`<span class="tag"><b>Config ${i+1}</b> · ${esc(c)}</span>`).join('');
@@ -507,43 +688,71 @@ function exerciseCard(x){
     <div class="row between"><div class="big">${x.sets} × ${x.reps} <small>rép</small>${w?' · '+w:''}${isPR?'<span class="pr">🏆 record</span>':''}</div></div>
     ${configs?`<div class="tags">${configs}</div>`:''}${x.comment?`<div class="cmt">${esc(x.comment)}</div>`:''}</div>`;
 }
+
+/** Onglet "Aujourd'hui" : séance du jour + bouton "Répéter la dernière séance". */
 function renderToday(){
-  const t=todayISO(); const items=state.exercises.filter(x=>x.date===t);
+  const t=todayISO();
+  const items=state.exercises.filter(x=>x.date===t);
   const hasPast=state.exercises.some(x=>x.date<t);
-  const body=items.length? items.map(exerciseCard).join('')
+  const body=items.length
+    ? items.map(exerciseCard).join('')
     : `<div class="card"><div class="empty">Pas encore d'exercice aujourd'hui.<br>Appuie sur « ＋ Nouvel exercice » pour démarrer ta séance 💪</div></div>`;
   setView(`<h1>Aujourd'hui</h1><p class="sub">${fmtDateFull(t)}</p>
     ${hasPast?`<button class="btn ghost" style="margin-top:12px" onclick="repeatLastSession()">↻ Répéter la dernière séance</button>`:''}
     ${items.length?`<div class="dayhead" style="margin-top:18px"><span class="d">Séance du jour</span><span class="c">${items.length} exercice${items.length>1?'s':''}</span></div>`:'<div style="height:14px"></div>'}
     ${body}<div style="height:80px"></div>`);
 }
+
+/** Barres "Équilibre" (exercices par groupe, semaine en cours). */
 function balanceHTML(){
-  const counts=weekGroupCounts(); const entries=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const counts=weekGroupCounts();
+  const entries=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
   if(!entries.length) return '<div class="empty">Aucun exercice cette semaine.</div>';
   const max=Math.max(...entries.map(e=>e[1]));
   return entries.map(([g,n])=>`<div class="bal"><span class="g">${g}</span><div class="track"><div class="fill" style="width:${Math.round(n/max*100)}%"></div></div><span class="n">${n}</span></div>`).join('');
 }
+
+/** Onglet "Cette semaine" : objectif, régularité, équilibre, séances récentes. */
 function renderWeek(){
-  const ws=startOfWeek(new Date()); const doneSet=gymDays(ws);
-  const done=doneSet.size; const goal=state.settings.weeklyGoal||1;
-  const pct=Math.min(done/goal,1); const remaining=Math.max(goal-done,0);
-  const R=36,C=2*Math.PI*R,off=C*(1-pct); const todayStr=todayISO();
+  const ws=startOfWeek(new Date());
+  const doneSet=gymDays(ws);
+  const done=doneSet.size, goal=state.settings.weeklyGoal||1;
+  const pct=Math.min(done/goal,1), remaining=Math.max(goal-done,0);
+  const R=36, C=2*Math.PI*R, off=C*(1-pct), todayStr=todayISO();
+
+  // Pastilles de la semaine (style "prise de médicaments")
   let daysHtml='';
-  for(let i=0;i<7;i++){ const d=new Date(ws); d.setDate(ws.getDate()+i); const iso=isoDate(d); const dn=doneSet.has(iso),td=iso===todayStr;
-    daysHtml+=`<div class="day"><span class="lbl">${DAY_LETTER[i]}</span><div class="dot ${dn?'done':''} ${td?'today':''}">${dn?'✓':''}</div><span class="dnum">${d.getDate()}</span></div>`; }
+  for(let i=0;i<7;i++){
+    const d=new Date(ws); d.setDate(ws.getDate()+i);
+    const iso=isoDate(d), dn=doneSet.has(iso), td=iso===todayStr;
+    daysHtml+=`<div class="day"><span class="lbl">${DAY_LETTER[i]}</span><div class="dot ${dn?'done':''} ${td?'today':''}">${dn?'✓':''}</div><span class="dnum">${d.getDate()}</span></div>`;
+  }
+
+  // Régularité : 5 dernières semaines
   let histHtml='';
-  for(let w=4;w>=0;w--){ const s=new Date(ws); s.setDate(ws.getDate()-7*w); const set=gymDays(s);
-    let dots=''; for(let i=0;i<7;i++){ const d=new Date(s); d.setDate(s.getDate()+i); dots+=`<div class="mini ${set.has(isoDate(d))?'done':''}"></div>`; }
-    histHtml+=`<div class="histweek"><span class="wk${w===0?' cur':''}">${weekRangeLabel(s)}</span><div class="minidots">${dots}</div></div>`; }
+  for(let w=4;w>=0;w--){
+    const s=new Date(ws); s.setDate(ws.getDate()-7*w);
+    const set=gymDays(s);
+    let dots='';
+    for(let i=0;i<7;i++){ const d=new Date(s); d.setDate(s.getDate()+i); dots+=`<div class="mini ${set.has(isoDate(d))?'done':''}"></div>`; }
+    histHtml+=`<div class="histweek"><span class="wk${w===0?' cur':''}">${weekRangeLabel(s)}</span><div class="minidots">${dots}</div></div>`;
+  }
+
+  // Séances récentes (3 derniers jours d'entraînement)
   const recent=groupByDate([...state.exercises].sort((a,b)=>b.date.localeCompare(a.date))).slice(0,3);
-  const recentHtml=recent.length? recent.map(g=>`<div class="dayhead"><span class="d">${fmtDate(g.date)}</span><span class="c">${g.items.length} exo${g.items.length>1?'s':''}</span></div>${g.items.map(exerciseCard).join('')}`).join('')
+  const recentHtml=recent.length
+    ? recent.map(g=>`<div class="dayhead"><span class="d">${fmtDate(g.date)}</span><span class="c">${g.items.length} exo${g.items.length>1?'s':''}</span></div>${g.items.map(exerciseCard).join('')}`).join('')
     : `<div class="card"><div class="empty">Aucune séance enregistrée pour l'instant.</div></div>`;
+
+  // Message d'objectif
   let msg,sub;
   if(remaining===0){ msg='Objectif atteint ! 🎉'; sub='Bravo, '+goal+' séances faites cette semaine.'; }
   else if(remaining===1){ msg='Plus qu\'une séance'; sub='Encore 1 passage pour valider ta semaine.'; }
   else { msg=remaining+' séances restantes'; sub=done+' sur '+goal+' faites cette semaine.'; }
+
   const endW=new Date(ws); endW.setDate(ws.getDate()+6);
   const range=ws.toLocaleDateString('fr-CH',{day:'numeric',month:'short'})+' – '+endW.toLocaleDateString('fr-CH',{day:'numeric',month:'short'});
+
   setView(`<h1>Cette semaine</h1><p class="sub">${range}</p>
     <div class="card" style="margin-top:14px"><div class="goalwrap">
       <div class="ring"><svg width="84" height="84">
@@ -556,58 +765,85 @@ function renderWeek(){
     <h2>Équilibre (cette semaine)</h2><div class="card">${balanceHTML()}</div>
     <h2>Séances récentes</h2>${recentHtml}<div style="height:70px"></div>`);
 }
+
+/** Carte d'une machine dans la liste (vignette + résumé). */
 function machineCardHTML(m){
   const ss=state.exercises.filter(x=>x.machineId===m.id).sort((a,b)=>b.date.localeCompare(a.date));
-  const last=ss[0]; let meta;
+  const last=ss[0];
+  let meta;
   if(!last) meta='Aucun exercice';
   else if(m.type==='cardio') meta=`${ss.length} séance${ss.length>1?'s':''} · dernier : ${last.duree} min · niv ${last.niveau}`;
   else meta=`${ss.length} exo${ss.length>1?'s':''} · dernier : ${last.sets}×${last.reps}${last.weight?(' · '+last.weight+'kg'):''}`;
   return `<div class="card mcard" onclick="openMachine('${m.id}')"><div class="mleft"><span class="mthumb">${machineArt(m.name)}</span><div><div class="name">${esc(m.name)}</div><div class="meta">${meta}</div></div></div><span class="chev">›</span></div>`;
 }
+
+/** Onglet "Machines" : liste rangée par catégorie/groupe. */
 function renderMachines(){
   let html=''; const used=new Set();
-  GROUPS.forEach(g=>{ const ms=state.machines.filter(m=>(m.group||'Autre')===g); if(!ms.length) return;
-    html+=`<h2>${g}</h2><div class="mlist">`+ms.map(machineCardHTML).join('')+`</div>`; ms.forEach(m=>used.add(m.id)); });
-  const rest=state.machines.filter(m=>!used.has(m.id));
-  if(rest.length){ html+=`<h2>Autre</h2><div class="mlist">`+rest.map(machineCardHTML).join('')+`</div>`; }
+  GROUPS.forEach(g=>{
+    const ms=state.machines.filter(m=>(m.group||'Autre')===g);
+    if(!ms.length) return;
+    html+=`<h2>${g}</h2><div class="mlist">`+ms.map(machineCardHTML).join('')+`</div>`;
+    ms.forEach(m=>used.add(m.id));
+  });
+  const rest=state.machines.filter(m=>!used.has(m.id)); // sécurité : groupe inconnu
+  if(rest.length) html+=`<h2>Autre</h2><div class="mlist">`+rest.map(machineCardHTML).join('')+`</div>`;
   setView(`<h1>Machines</h1><p class="sub">Regroupées par catégorie · touche pour l'historique et la progression</p>${html}<div style="height:70px"></div>`);
 }
+
+/** Écran de détail d'une machine : progression, records, historique. */
 function openMachine(id){
-  const m=machine(id); if(!m) return; const cardio=m.type==='cardio';
-  const ss=state.exercises.filter(x=>x.machineId===id).sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id));
-  const chron=[...ss].sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id));
+  const m=machine(id); if(!m) return;
+  const cardio=m.type==='cardio';
+  const ss=state.exercises.filter(x=>x.machineId===id).sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id)); // récents d'abord
+  const chron=[...ss].sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id));                                  // chronologique (courbes)
   let chart='', records='';
+
   if(cardio){
+    // --- Progression CARDIO : durée + niveau ---
     if(chron.length>=2){
-      const dates=chron.map(x=>x.date); const first=chron[0].date, last=chron[chron.length-1].date;
+      const dates=chron.map(x=>x.date), first=chron[0].date, last=chron[chron.length-1].date;
       chart=`<h2>Progression <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">· touche les courbes</span></h2><div class="card">
         <p class="note" style="margin-top:0">Du ${fmtDate(first)} au ${fmtDate(last)} · ${chron.length} séances</p>
         ${metricBlock('Durée (min)',chron.map(x=>Number(x.duree)),dates,' min','var(--accent)')}
         ${metricBlock('Niveau',chron.map(x=>Number(x.niveau)),dates,'','var(--amber)')}</div>`;
-    } else if(chron.length===1){ chart=`<h2>Progression</h2><div class="card"><div class="empty">Ajoute au moins 2 séances sur cette machine pour voir les courbes d'évolution.</div></div>`; }
-    if(ss.length>=1){ const durs=ss.map(x=>Number(x.duree)); const maxD=Math.max(...durs); const recD=ss.find(x=>Number(x.duree)===maxD);
+    } else if(chron.length===1){
+      chart=`<h2>Progression</h2><div class="card"><div class="empty">Ajoute au moins 2 séances sur cette machine pour voir les courbes d'évolution.</div></div>`;
+    }
+    if(ss.length>=1){
+      const durs=ss.map(x=>Number(x.duree)), maxD=Math.max(...durs), recD=ss.find(x=>Number(x.duree)===maxD);
       const maxL=Math.max(...ss.map(x=>Number(x.niveau)));
       records=`<h2>Records</h2><div class="card">
         <div class="rec"><span>⏱ Durée max</span><b>${maxD} min <small>le ${fmtDate(recD.date)}</small></b></div>
-        <div class="rec"><span>Niveau max</span><b>${maxL}</b></div></div>`; }
+        <div class="rec"><span>Niveau max</span><b>${maxL}</b></div></div>`;
+    }
   } else {
+    // --- Progression MUSCU : poids + séries + répétitions ---
     if(chron.length>=2){
-      const dates=chron.map(x=>x.date); const first=chron[0].date, last=chron[chron.length-1].date;
+      const dates=chron.map(x=>x.date), first=chron[0].date, last=chron[chron.length-1].date;
       chart=`<h2>Progression <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">· touche les courbes</span></h2><div class="card">
         <p class="note" style="margin-top:0">Du ${fmtDate(first)} au ${fmtDate(last)} · ${chron.length} exercices</p>
         ${metricBlock('Poids (kg)',chron.map(x=>Number(x.weight)),dates,' kg','var(--accent)')}
         ${metricBlock('Séries',chron.map(x=>Number(x.sets)),dates,'','var(--amber)')}
         ${metricBlock('Répétitions',chron.map(x=>Number(x.reps)),dates,'','var(--blue)')}</div>`;
-    } else if(chron.length===1){ chart=`<h2>Progression</h2><div class="card"><div class="empty">Ajoute au moins 2 exercices sur cette machine pour voir les courbes d'évolution.</div></div>`; }
-    if(ss.length>=1){ const weights=ss.map(x=>Number(x.weight)); const maxW=Math.max(...weights);
-      const recEx=ss.find(x=>Number(x.weight)===maxW); const max1=Math.max(...ss.map(ex1rm));
+    } else if(chron.length===1){
+      chart=`<h2>Progression</h2><div class="card"><div class="empty">Ajoute au moins 2 exercices sur cette machine pour voir les courbes d'évolution.</div></div>`;
+    }
+    if(ss.length>=1){
+      const weights=ss.map(x=>Number(x.weight)), maxW=Math.max(...weights), recEx=ss.find(x=>Number(x.weight)===maxW);
+      const max1=Math.max(...ss.map(ex1rm));
       records=`<h2>Records</h2><div class="card">
         <div class="rec"><span>🏆 Poids max</span><b>${maxW} kg <small>le ${fmtDate(recEx.date)}</small></b></div>
-        <div class="rec"><span>1RM estimé<span class="info" onclick="info1RM()">i</span></span><b>${max1} kg</b></div></div>`; }
+        <div class="rec"><span>1RM estimé<span class="info" onclick="info1RM()">i</span></span><b>${max1} kg</b></div></div>`;
+    }
   }
-  const body=ss.length? `<h2>Historique</h2>`+groupByDate(ss).map(g=>`<div class="dayhead"><span class="d">${fmtDate(g.date)}</span></div>${g.items.map(exerciseCard).join('')}`).join('')
+
+  const body=ss.length
+    ? `<h2>Historique</h2>`+groupByDate(ss).map(g=>`<div class="dayhead"><span class="d">${fmtDate(g.date)}</span></div>${g.items.map(exerciseCard).join('')}`).join('')
     : `<div class="card"><div class="empty">Pas encore d'exercice pour cette machine.</div></div>`;
   const repeatBtn=lastForMachine(id)?`<button class="btn ghost sm" style="flex:1" onclick="repeatLastForMachine('${id}')">↻ Répéter</button>`:'';
+
+  const screen=document.getElementById('screen-machine');
   document.getElementById('screen-machine-inner').innerHTML=`
     <div class="navbar"><button class="back" onclick="closeMachine()">‹ Machines</button></div>
     <div class="mhero">${machineArt(m.name)}</div>
@@ -616,11 +852,15 @@ function openMachine(id){
       <button class="btn sm" style="flex:1" onclick="openForm({machineId:'${id}'})">＋ ${cardio?'Nouvelle séance':'Nouvel exercice'}</button>${repeatBtn}
     </div>${chart}${records}${body}`;
   initCharts(document.getElementById('screen-machine-inner'));
-  document.getElementById('screen-machine').classList.add('open'); updateFab();
+  screen.scrollTop=0;                                 // afficher le haut de l'écran
+  screen.classList.add('open');
+  updateFloating();
 }
-function closeMachine(){ document.getElementById('screen-machine').classList.remove('open'); updateFab(); }
+function closeMachine(){ document.getElementById('screen-machine').classList.remove('open'); updateFloating(); }
+
+/** Onglet "Réglages". */
 function renderSettings(){
-  const g=state.settings.weeklyGoal||1; const rs=state.settings.restSeconds||60;
+  const g=state.settings.weeklyGoal||1, rs=state.settings.restSeconds||60;
   const storeMsg='Tes données vivent dans une base locale (IndexedDB) sur cet appareil, avec une copie de secours. '+
     (storagePersisted?'Stockage persistant activé ✓ — peu de risque d\'effacement par iOS.':'Pense à exporter une sauvegarde régulièrement.');
   setView(`<h1>Réglages</h1>
@@ -631,7 +871,7 @@ function renderSettings(){
     <h2>Minuteur de repos</h2>
     <div class="card"><label>Durée de repos par défaut (secondes)</label>
       <div class="stepper"><button id="rest-minus" onclick="changeRest(-15)">−</button><span class="val" id="restval">${rs}</span><button id="rest-plus" onclick="changeRest(15)">＋</button></div>
-      <p class="note">De 15 à 300 secondes (par pas de 15). Démarre seul après un exercice de musculation.</p></div>
+      <p class="note">De 15 à 300 secondes (par pas de 15). Lance-le avec la bulle ⏱ en bas à gauche, entre tes séries.</p></div>
     <h2>Machines</h2>
     <div class="card mcard" onclick="openMachinesEdit()"><div><div class="name">Mes machines</div><div class="meta">${state.machines.length} machine${state.machines.length>1?'s':''}</div></div><span class="chev">›</span></div>
     <h2>Sauvegarde &amp; restauration</h2>
@@ -649,24 +889,34 @@ function renderSettings(){
   document.getElementById('goal-minus').disabled=(g<=1); document.getElementById('goal-plus').disabled=(g>=7);
   document.getElementById('rest-minus').disabled=(rs<=15); document.getElementById('rest-plus').disabled=(rs>=300);
 }
-function changeGoal(d){ const g=Math.max(1,Math.min(7,(state.settings.weeklyGoal||1)+d)); state.settings.weeklyGoal=g; save();
-  document.getElementById('goalval').textContent=g; document.getElementById('goal-minus').disabled=(g<=1); document.getElementById('goal-plus').disabled=(g>=7); }
-function changeRest(d){ const v=Math.max(15,Math.min(300,(state.settings.restSeconds||60)+d)); state.settings.restSeconds=v; save();
-  document.getElementById('restval').textContent=v; document.getElementById('rest-minus').disabled=(v<=15); document.getElementById('rest-plus').disabled=(v>=300); }
+// Modifications "en place" (sans re-rendre tout l'onglet → pas de clignotement)
+function changeGoal(d){
+  const g=Math.max(1,Math.min(7,(state.settings.weeklyGoal||1)+d));
+  state.settings.weeklyGoal=g; save();
+  document.getElementById('goalval').textContent=g;
+  document.getElementById('goal-minus').disabled=(g<=1); document.getElementById('goal-plus').disabled=(g>=7);
+}
+function changeRest(d){
+  const v=Math.max(15,Math.min(300,(state.settings.restSeconds||60)+d));
+  state.settings.restSeconds=v; save();
+  document.getElementById('restval').textContent=v;
+  document.getElementById('rest-minus').disabled=(v<=15); document.getElementById('rest-plus').disabled=(v>=300);
+}
 
-/* ===== Machines edit ===== */
+/* ===== Édition des machines (sous-écran) ===== */
 function groupOptions(sel){ return GROUPS.filter(g=>g!=='Cardio').map(g=>`<option value="${g}"${g===sel?' selected':''}>${g}</option>`).join(''); }
 function typeOptions(sel){ return `<option value="strength"${sel!=='cardio'?' selected':''}>Musculation</option><option value="cardio"${sel==='cardio'?' selected':''}>Cardio</option>`; }
-function openMachinesEdit(){ renderMachinesEdit(); document.getElementById('screen-medit').classList.add('open'); updateFab(); }
-function closeMedit(){ document.getElementById('screen-medit').classList.remove('open'); if(currentTab==='settings') renderSettings(); updateFab(); }
+function openMachinesEdit(){ renderMachinesEdit(); const s=document.getElementById('screen-medit'); s.scrollTop=0; s.classList.add('open'); updateFloating(); }
+function closeMedit(){ document.getElementById('screen-medit').classList.remove('open'); if(currentTab==='settings') renderSettings(); updateFloating(); }
 function renderMachinesEdit(){
   const mach=state.machines.map(m=>`<div class="card medit">
     <div class="cfgrow" style="margin-bottom:8px"><div class="f"><input value="${esc(m.name)}" onchange="renameMachine('${m.id}',this.value)"></div>
       <button class="xbtn" onclick="deleteMachine('${m.id}')">✕</button></div>
     <label style="margin-bottom:6px">Type</label>
     <select onchange="setMachineType('${m.id}',this.value)">${typeOptions(m.type)}</select>
-    ${m.type==='cardio'?`<p class="note">Machine de cardio · programme, niveau, durée.</p>`
-      :`<label style="margin:10px 0 6px">Groupe musculaire</label><select onchange="setMachineGroup('${m.id}',this.value)">${groupOptions(m.group||'Autre')}</select>`}
+    ${m.type==='cardio'
+      ? `<p class="note">Machine de cardio · programme, niveau, durée.</p>`
+      : `<label style="margin:10px 0 6px">Groupe musculaire</label><select onchange="setMachineGroup('${m.id}',this.value)">${groupOptions(m.group||'Autre')}</select>`}
   </div>`).join('');
   document.getElementById('screen-medit-inner').innerHTML=`
     <div class="navbar"><button class="back" onclick="closeMedit()">‹ Réglages</button></div>
@@ -683,180 +933,280 @@ function renderMachinesEdit(){
 function toggleNewGroup(){ document.getElementById('new-group-wrap').style.display=document.getElementById('new-type').value==='cardio'?'none':'block'; }
 function renameMachine(id,name){ const m=machine(id); if(m){ const n=name.trim(); if(n) m.name=n; save(); } }
 function setMachineGroup(id,g){ const m=machine(id); if(m){ m.group=g; save(); } }
-function setMachineType(id,t){ const m=machine(id); if(m){ m.type=t; if(t==='cardio') m.group='Cardio'; else if(m.group==='Cardio') m.group='Autre'; save(); renderMachinesEdit(); } }
-function addMachine(){ const i=document.getElementById('new-machine'); const n=i.value.trim(); if(!n) return;
-  const t=document.getElementById('new-type').value; const g=t==='cardio'?'Cardio':(document.getElementById('new-group').value||'Autre');
-  state.machines.push({id:uid(),name:n,group:g,type:t}); save(); renderMachinesEdit(); toast('Machine ajoutée ✓'); }
+function setMachineType(id,t){
+  const m=machine(id); if(!m) return;
+  m.type=t;
+  if(t==='cardio') m.group='Cardio'; else if(m.group==='Cardio') m.group='Autre';
+  save(); renderMachinesEdit();
+}
+function addMachine(){
+  const i=document.getElementById('new-machine'), n=i.value.trim(); if(!n) return;
+  const t=document.getElementById('new-type').value;
+  const g=(t==='cardio')?'Cardio':(document.getElementById('new-group').value||'Autre');
+  state.machines.push({id:uid(),name:n,group:g,type:t});
+  save(); renderMachinesEdit(); toast('Machine ajoutée ✓');
+}
 function deleteMachine(id){
   if(state.machines.length<=1){ toast('Garde au moins une machine'); return; }
   askConfirm('Supprimer « '+machineName(id)+' » ? Les exercices déjà enregistrés restent dans l\'historique.', ()=>{
     state.machines=state.machines.filter(m=>m.id!==id); save(); renderMachinesEdit(); toast('Machine supprimée');
   },'Supprimer');
 }
-function resetAll(){ askConfirm('Effacer TOUTES tes données ? Action irréversible.', ()=>{
-  state={settings:{weeklyGoal:3,restSeconds:60},machines:[],exercises:[]}; normalize(); save(); renderSettings(); toast('Données effacées');
-},'Tout effacer'); }
+function resetAll(){
+  askConfirm('Effacer TOUTES tes données ? Action irréversible.', ()=>{
+    state={settings:{weeklyGoal:3,restSeconds:60},machines:[],exercises:[]}; normalize(); save(); renderSettings(); toast('Données effacées');
+  },'Tout effacer');
+}
 
-/* ===== Repeat ===== */
+/* ===== "Répéter" (copie d'exercices vers aujourd'hui) ===== */
+/** Duplique un exercice pour aujourd'hui (résultat/commentaire remis à zéro). */
 function cloneForToday(x){
-  if(isCardioMachine(x.machineId)) return {id:uid(),date:todayISO(),machineId:x.machineId,programme:x.programme,niveau:x.niveau,duree:x.duree,comment:''};
+  if(isCardioMachine(x.machineId))
+    return {id:uid(),date:todayISO(),machineId:x.machineId,programme:x.programme,niveau:x.niveau,duree:x.duree,comment:''};
   return {id:uid(),date:todayISO(),machineId:x.machineId,weight:x.weight,sets:x.sets,reps:x.reps,status:'success',configs:(x.configs||[]).slice(0,MAX_CONFIGS),comment:''};
 }
 function repeatLastSession(){
   const days=[...new Set(state.exercises.map(x=>x.date))].filter(d=>d<todayISO()).sort();
-  const past=days.pop(); if(!past){ toast('Aucune séance précédente'); return; }
+  const past=days.pop();
+  if(!past){ toast('Aucune séance précédente'); return; }
   const items=state.exercises.filter(x=>x.date===past);
-  const doIt=()=>{ items.forEach(x=>state.exercises.push(cloneForToday(x)));
-    save(); render(); toast('Séance répétée ('+items.length+' exercice'+(items.length>1?'s':'')+') ✓'); };
-  if(state.exercises.some(x=>x.date===todayISO())) askConfirm('Ajouter les '+items.length+' exercices de la séance du '+fmtDate(past)+' à aujourd\'hui ?', doIt,'Répéter');
+  const doIt=()=>{
+    items.forEach(x=>state.exercises.push(cloneForToday(x)));
+    save(); render(); toast('Séance répétée ('+items.length+' exercice'+(items.length>1?'s':'')+') ✓');
+  };
+  if(state.exercises.some(x=>x.date===todayISO()))
+    askConfirm('Ajouter les '+items.length+' exercices de la séance du '+fmtDate(past)+' à aujourd\'hui ?', doIt,'Répéter');
   else doIt();
 }
 function repeatLastForMachine(id){
-  const x=lastForMachine(id); if(!x){ toast('Aucun exercice à répéter'); return; }
-  state.exercises.push(cloneForToday(x)); save(); openMachine(id); toast('Exercice répété ✓');
-  if(!isCardioMachine(id)) startRest(state.settings.restSeconds);
+  const x=lastForMachine(id);
+  if(!x){ toast('Aucun exercice à répéter'); return; }
+  state.exercises.push(cloneForToday(x));
+  save(); openMachine(id); toast('Exercice répété ✓');
 }
 
-/* ===== Rest timer ===== */
+/* ===== Minuteur de repos (lancé manuellement via la bulle ⏱) ===== */
 let restInt=null, restRem=0, restTot=0, actx=null;
 function initAudio(){ try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended') actx.resume(); }catch(e){} }
-function beep(){ try{ if(!actx) return; const o=actx.createOscillator(), g=actx.createGain(); o.connect(g); g.connect(actx.destination);
-  o.type='sine'; o.frequency.value=880; g.gain.setValueAtTime(0.0001,actx.currentTime); g.gain.exponentialRampToValueAtTime(0.3,actx.currentTime+0.01);
-  g.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+0.45); o.start(); o.stop(actx.currentTime+0.47); }catch(e){} }
-function showRest(){ document.getElementById('restbar').classList.add('show'); updateFab(); }
-function hideRest(){ document.getElementById('restbar').classList.remove('show'); updateFab(); }
-function restUI(){ document.getElementById('rest-time').textContent=Math.max(restRem,0)+' s';
-  document.getElementById('rest-fill').style.width=(restTot?Math.max(restRem,0)/restTot*100:0)+'%'; }
-function startRest(sec){ initAudio(); if(restInt) clearInterval(restInt); restTot=sec; restRem=sec; showRest(); restUI();
-  restInt=setInterval(()=>{ restRem--; restUI(); if(restRem<=0){ clearInterval(restInt); restInt=null; finishRest(); } },1000); }
+function beep(){
+  try{
+    if(!actx) return;
+    const o=actx.createOscillator(), g=actx.createGain();
+    o.connect(g); g.connect(actx.destination); o.type='sine'; o.frequency.value=880;
+    g.gain.setValueAtTime(0.0001,actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.3,actx.currentTime+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+0.45);
+    o.start(); o.stop(actx.currentTime+0.47);
+  }catch(e){}
+}
+function showRest(){ document.getElementById('restbar').classList.add('show'); updateFloating(); }
+function hideRest(){ document.getElementById('restbar').classList.remove('show'); updateFloating(); }
+function restUI(){
+  document.getElementById('rest-time').textContent=Math.max(restRem,0)+' s';
+  document.getElementById('rest-fill').style.width=(restTot?Math.max(restRem,0)/restTot*100:0)+'%';
+}
+function startRest(sec){
+  initAudio();                                        // prépare l'audio dans le geste utilisateur (iOS)
+  if(restInt) clearInterval(restInt);
+  restTot=sec; restRem=sec; showRest(); restUI();
+  restInt=setInterval(()=>{
+    restRem--; restUI();
+    if(restRem<=0){ clearInterval(restInt); restInt=null; finishRest(); }
+  },1000);
+}
 function addRest(s){ restRem+=s; restTot=Math.max(restTot,restRem); restUI(); }
 function stopRest(){ if(restInt){ clearInterval(restInt); restInt=null; } hideRest(); }
-function finishRest(){ document.getElementById('rest-time').textContent='Terminé ✓';
-  try{ if(navigator.vibrate) navigator.vibrate([130,70,130]); }catch(e){} beep(); toast('Repos terminé 💪'); setTimeout(hideRest,1600); }
+function finishRest(){
+  document.getElementById('rest-time').textContent='Terminé ✓';
+  try{ if(navigator.vibrate) navigator.vibrate([130,70,130]); }catch(e){}
+  beep(); toast('Repos terminé 💪');
+  setTimeout(hideRest,1600);
+}
 
-/* ===== Confirm / info modals ===== */
+/* ===== Modales (confirmation + info) ===== */
 let confirmYes=null;
-function askConfirm(msg,onYes,yesLabel){ document.getElementById('confirm-msg').textContent=msg;
-  const y=document.getElementById('confirm-yes'); y.textContent=yesLabel||'Confirmer'; confirmYes=onYes;
-  document.getElementById('confirm-bg').classList.add('open'); }
+function askConfirm(msg,onYes,yesLabel){
+  document.getElementById('confirm-msg').textContent=msg;
+  const y=document.getElementById('confirm-yes'); y.textContent=yesLabel||'Confirmer';
+  confirmYes=onYes;
+  document.getElementById('confirm-bg').classList.add('open');
+}
 function closeConfirm(){ document.getElementById('confirm-bg').classList.remove('open'); confirmYes=null; }
 document.getElementById('confirm-yes').onclick=()=>{ const cb=confirmYes; closeConfirm(); if(cb) cb(); };
 document.getElementById('confirm-no').onclick=closeConfirm;
 document.getElementById('confirm-bg').addEventListener('click',e=>{ if(e.target.id==='confirm-bg') closeConfirm(); });
+
 function showInfo(title,msg){ document.getElementById('info-title').textContent=title; document.getElementById('info-msg').textContent=msg; document.getElementById('info-bg').classList.add('open'); }
 function closeInfo(){ document.getElementById('info-bg').classList.remove('open'); }
 function info1RM(){ showInfo('Qu\u2019est-ce que le 1RM ?','Le 1RM (« one-rep max », ou répétition maximale) est le poids le plus lourd que tu pourrais soulever une seule fois sur cet exercice. Le tester en vrai étant risqué, l\'app l\'estime à partir de ton poids et de tes répétitions (formule d\'Epley : poids × (1 + reps ÷ 30)). C\'est un repère pratique pour suivre ta force globale, même quand tu changes de nombre de répétitions.'); }
 document.getElementById('info-bg').addEventListener('click',e=>{ if(e.target.id==='info-bg') closeInfo(); });
 
-/* ===== Tabs ===== */
-function goTab(t){ currentTab=t; ['today','week','machines','settings'].forEach(x=>document.getElementById('tab-'+x).classList.toggle('active',x===t)); closeOverlays(); render(); }
+/* ===== Navigation entre onglets ===== */
+function goTab(t){
+  currentTab=t;
+  ['today','week','machines','settings'].forEach(x=>document.getElementById('tab-'+x).classList.toggle('active',x===t));
+  closeOverlays();
+  render();                                           // render() → setView() remet en haut de page
+}
 
-/* ===== Exercise form ===== */
+/* ===== Formulaire d'exercice ===== */
 let editingId=null, curStatus='success';
 function setStatus(s){ curStatus=s; document.querySelectorAll('#f-status button').forEach(b=>b.classList.toggle('sel',b.dataset.s===s)); }
 document.querySelectorAll('#f-status button').forEach(b=>b.addEventListener('click',()=>setStatus(b.dataset.s)));
+// Remplit la liste des programmes cardio une fois pour toutes
 document.getElementById('f-prog').innerHTML=CARDIO_PROGRAMS.map(p=>`<option value="${p}">${p}</option>`).join('');
-document.getElementById('f-machine').addEventListener('change',()=>{ const id=document.getElementById('f-machine').value; setFormMode(id); if(!editingId) prefillFromLast(id); });
-function setFormMode(id){ const cardio=isCardioMachine(id);
+// Changement de machine → bascule muscu/cardio + pré-remplissage
+document.getElementById('f-machine').addEventListener('change',()=>{
+  const id=document.getElementById('f-machine').value;
+  setFormMode(id);
+  if(!editingId) prefillFromLast(id);
+});
+
+/** Affiche le bon jeu de champs selon le type de machine. */
+function setFormMode(id){
+  const cardio=isCardioMachine(id);
   document.getElementById('fields-strength').style.display=cardio?'none':'block';
-  document.getElementById('fields-cardio').style.display=cardio?'block':'none'; }
+  document.getElementById('fields-cardio').style.display=cardio?'block':'none';
+}
+
+/* --- Gestion des lignes de configuration (muscu) --- */
 function configCount(){ return document.querySelectorAll('#f-configs .cfgrow').length; }
 function updateAddCfgBtn(){ document.getElementById('add-cfg').style.display=configCount()>=MAX_CONFIGS?'none':'block'; }
 function clearConfigs(){ document.getElementById('f-configs').innerHTML=''; updateAddCfgBtn(); }
 function addConfigRow(val){
   if(configCount()>=MAX_CONFIGS){ toast(MAX_CONFIGS+' configurations maximum'); return; }
-  const c=document.getElementById('f-configs'); const row=document.createElement('div'); row.className='cfgrow';
+  const c=document.getElementById('f-configs');
+  const row=document.createElement('div'); row.className='cfgrow';
   row.innerHTML=`<div class="f"><label class="cfglabel"></label><input placeholder="ex : dossier position 3" value="${esc(val||'')}"></div>
     <button class="xbtn" onclick="this.closest('.cfgrow').remove(); relabelConfigs(); updateAddCfgBtn();">✕</button>`;
-  c.appendChild(row); relabelConfigs(); updateAddCfgBtn(); if(!val) row.querySelector('input').focus();
+  c.appendChild(row); relabelConfigs(); updateAddCfgBtn();
+  if(!val) row.querySelector('input').focus();
 }
 function relabelConfigs(){ document.querySelectorAll('#f-configs .cfgrow .cfglabel').forEach((l,i)=>l.textContent='Configuration '+(i+1)); }
+
+/* --- Erreurs de validation --- */
 function clearErrors(){ ['weight','sets','reps','level','dur'].forEach(k=>{ document.getElementById('f-'+k).classList.remove('bad'); document.getElementById('err-'+k).classList.remove('show'); }); }
+function showErr(id,on){ document.getElementById('f-'+id).classList.toggle('bad',on); document.getElementById('err-'+id).classList.toggle('show',on); }
+
+/** Mini-mémoire : pré-remplit avec le dernier exercice de la machine. */
 function prefillFromLast(id){
-  clearConfigs(); clearErrors(); const cardio=isCardioMachine(id); const x=lastForMachine(id);
+  clearConfigs(); clearErrors();
+  const cardio=isCardioMachine(id), x=lastForMachine(id);
   if(cardio){
     if(x){ document.getElementById('f-prog').value=x.programme||'Manuel'; document.getElementById('f-level').value=x.niveau??''; document.getElementById('f-dur').value=x.duree??30; }
-    else { document.getElementById('f-prog').value='Manuel'; document.getElementById('f-level').value=''; document.getElementById('f-dur').value=30; }
+    else  { document.getElementById('f-prog').value='Manuel'; document.getElementById('f-level').value=''; document.getElementById('f-dur').value=30; }
   } else {
-    if(x){ document.getElementById('f-weight').value=x.weight; document.getElementById('f-sets').value=x.sets; document.getElementById('f-reps').value=x.reps;
-      (x.configs||[]).slice(0,MAX_CONFIGS).forEach(c=>addConfigRow(c)); }
-    else { ['weight','sets','reps'].forEach(k=>document.getElementById('f-'+k).value=''); }
+    if(x){
+      document.getElementById('f-weight').value=x.weight; document.getElementById('f-sets').value=x.sets; document.getElementById('f-reps').value=x.reps;
+      (x.configs||[]).slice(0,MAX_CONFIGS).forEach(c=>addConfigRow(c));
+    } else {
+      ['weight','sets','reps'].forEach(k=>document.getElementById('f-'+k).value='');
+    }
   }
 }
+
+/** Ouvre le formulaire (nouvel exercice ou édition). */
 function openForm(opts){
   opts=opts||{}; editingId=opts.id||null; clearErrors();
   const sel=document.getElementById('f-machine');
   sel.innerHTML=state.machines.map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('');
+
   if(editingId){
-    const x=state.exercises.find(e=>e.id===editingId); const cardio=isCardioMachine(x.machineId);
+    // --- Édition : on garde la date d'origine (lecture seule) ---
+    const x=state.exercises.find(e=>e.id===editingId), cardio=isCardioMachine(x.machineId);
     document.getElementById('sheet-title').textContent='Modifier l\'exercice';
     document.getElementById('date-readonly').style.display='block';
     document.getElementById('f-date-label').textContent=fmtDateFull(x.date);
     sel.value=x.machineId; setFormMode(x.machineId);
-    if(cardio){ document.getElementById('f-prog').value=x.programme||'Manuel'; document.getElementById('f-level').value=x.niveau??''; document.getElementById('f-dur').value=x.duree??30; }
-    else { document.getElementById('f-weight').value=x.weight; document.getElementById('f-sets').value=x.sets; document.getElementById('f-reps').value=x.reps;
-      setStatus(x.status||'success'); clearConfigs(); (x.configs||[]).slice(0,MAX_CONFIGS).forEach(c=>addConfigRow(c)); }
-    document.getElementById('f-comment').value=x.comment||''; document.getElementById('f-delete').style.display='block';
+    if(cardio){
+      document.getElementById('f-prog').value=x.programme||'Manuel'; document.getElementById('f-level').value=x.niveau??''; document.getElementById('f-dur').value=x.duree??30;
+    } else {
+      document.getElementById('f-weight').value=x.weight; document.getElementById('f-sets').value=x.sets; document.getElementById('f-reps').value=x.reps;
+      setStatus(x.status||'success'); clearConfigs(); (x.configs||[]).slice(0,MAX_CONFIGS).forEach(c=>addConfigRow(c));
+    }
+    document.getElementById('f-comment').value=x.comment||'';
+    document.getElementById('f-delete').style.display='block';
   } else {
+    // --- Nouveau : daté d'aujourd'hui, pré-rempli via la mini-mémoire ---
     document.getElementById('sheet-title').textContent='Nouvel exercice';
     document.getElementById('date-readonly').style.display='none';
     if(opts.machineId) sel.value=opts.machineId;
     setFormMode(sel.value); setStatus('success'); document.getElementById('f-comment').value='';
-    prefillFromLast(sel.value); document.getElementById('f-delete').style.display='none';
+    prefillFromLast(sel.value);
+    document.getElementById('f-delete').style.display='none';
   }
+
   document.getElementById('sheet-bg').classList.add('open');
   setTimeout(()=>document.getElementById('sheet').classList.add('open'),10);
 }
 function closeForm(){ document.getElementById('sheet').classList.remove('open'); setTimeout(()=>document.getElementById('sheet-bg').classList.remove('open'),260); }
-function showErr(id,on){ document.getElementById('f-'+id).classList.toggle('bad',on); document.getElementById('err-'+id).classList.toggle('show',on); }
+
+/** Valide puis enregistre l'exercice (création ou modification). */
 function saveExercise(){
-  const machineId=document.getElementById('f-machine').value; const cardio=isCardioMachine(machineId);
+  const machineId=document.getElementById('f-machine').value, cardio=isCardioMachine(machineId);
   const comment=document.getElementById('f-comment').value.trim();
-  const wasEditing=!!editingId; let data, isPR=false;
+  const wasEditing=!!editingId;
+  let data, isPR=false;
+
   if(cardio){
+    // --- Validation CARDIO ---
     let ok=true;
-    const lRaw=document.getElementById('f-level').value.trim(); const lvl=Number(lRaw);
+    const lRaw=document.getElementById('f-level').value.trim(), lvl=Number(lRaw);
     const lOk=/^\d+$/.test(lRaw)&&lvl>=1&&lvl<=25; showErr('level',!lOk); if(!lOk) ok=false;
-    const dRaw=document.getElementById('f-dur').value.trim(); const dur=Number(dRaw);
+    const dRaw=document.getElementById('f-dur').value.trim(), dur=Number(dRaw);
     const dOk=/^\d+$/.test(dRaw)&&dur>=1; showErr('dur',!dOk); if(!dOk) ok=false;
     if(!ok){ toast('Vérifie les champs en rouge'); return; }
     data={machineId,programme:document.getElementById('f-prog').value,niveau:lvl,duree:dur,comment};
   } else {
+    // --- Validation MUSCU ---
     let ok=true;
-    const wRaw=document.getElementById('f-weight').value.trim().replace(',','.'); const w=Number(wRaw);
+    const wRaw=document.getElementById('f-weight').value.trim().replace(',','.'), w=Number(wRaw);
     const wOk=wRaw!==''&&/^\d*\.?\d+$/.test(wRaw)&&isFinite(w)&&w>=0; showErr('weight',!wOk); if(!wOk) ok=false;
-    const sRaw=document.getElementById('f-sets').value.trim(); const sets=Number(sRaw);
+    const sRaw=document.getElementById('f-sets').value.trim(), sets=Number(sRaw);
     const sOk=/^\d+$/.test(sRaw)&&sets>=1; showErr('sets',!sOk); if(!sOk) ok=false;
-    const rRaw=document.getElementById('f-reps').value.trim(); const reps=Number(rRaw);
+    const rRaw=document.getElementById('f-reps').value.trim(), reps=Number(rRaw);
     const rOk=/^\d+$/.test(rRaw)&&reps>=1; showErr('reps',!rOk); if(!rOk) ok=false;
     if(!ok){ toast('Vérifie les champs en rouge'); return; }
     const configs=[...document.querySelectorAll('#f-configs input')].map(i=>i.value.trim()).filter(Boolean).slice(0,MAX_CONFIGS);
     const wval=Math.round(w*100)/100;
-    let priorMax=null; { const ws=state.exercises.filter(e=>e.machineId===machineId&&e.id!==editingId).map(e=>Number(e.weight)); if(ws.length) priorMax=Math.max(...ws); }
+    // Détection d'un record de poids (vs les exercices précédents de cette machine)
+    let priorMax=null;
+    const ws=state.exercises.filter(e=>e.machineId===machineId&&e.id!==editingId).map(e=>Number(e.weight));
+    if(ws.length) priorMax=Math.max(...ws);
     isPR = priorMax!=null && wval>priorMax && wval>0;
     data={machineId,weight:wval,sets,reps,status:curStatus,configs,comment};
   }
-  if(editingId){ const x=state.exercises.find(e=>e.id===editingId); Object.keys(x).forEach(k=>{ if(!['id','date'].includes(k)) delete x[k]; }); Object.assign(x,data); }
-  else { state.exercises.push({id:uid(),date:todayISO(),...data}); }
+
+  if(editingId){
+    // Remplace proprement les champs (en gardant id + date)
+    const x=state.exercises.find(e=>e.id===editingId);
+    Object.keys(x).forEach(k=>{ if(!['id','date'].includes(k)) delete x[k]; });
+    Object.assign(x,data);
+  } else {
+    state.exercises.push({id:uid(),date:todayISO(),...data});
+  }
+
   save(); closeForm();
   if(document.getElementById('screen-machine').classList.contains('open')) openMachine(machineId); else render();
   toast(wasEditing?'Exercice modifié ✓':(isPR?'Nouveau record 🏆 '+data.weight+' kg !':(cardio?'Séance ajoutée ✓':'Exercice ajouté ✓')));
-  if(!wasEditing && !cardio) startRest(state.settings.restSeconds);
+  // NB : le minuteur de repos ne démarre plus automatiquement (bulle ⏱ manuelle).
 }
 function editExercise(id){ openForm({id}); }
 function deleteCurrent(){
   if(!editingId) return;
   askConfirm('Supprimer cet exercice ?', ()=>{
     const mid=state.exercises.find(e=>e.id===editingId)?.machineId;
-    state.exercises=state.exercises.filter(e=>e.id!==editingId); save(); closeForm();
+    state.exercises=state.exercises.filter(e=>e.id!==editingId);
+    save(); closeForm();
     if(document.getElementById('screen-machine').classList.contains('open')&&mid) openMachine(mid); else render();
     toast('Exercice supprimé');
   },'Supprimer');
 }
 
-/* ===== Backup / export ===== */
+/* ===== Sauvegarde / export ===== */
 function downloadText(name,content,mime){
-  try{ const blob=new Blob([content],{type:mime+';charset=utf-8'}); const url=URL.createObjectURL(blob);
+  try{
+    const blob=new Blob([content],{type:mime+';charset=utf-8'}), url=URL.createObjectURL(blob);
     const a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click();
     setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); },1000);
   }catch(e){ console.warn(e); }
@@ -872,7 +1222,8 @@ function importBackup(){ document.getElementById('import-file').click(); }
 document.getElementById('import-file').addEventListener('change',function(e){
   const file=e.target.files&&e.target.files[0]; e.target.value=''; if(!file) return;
   const reader=new FileReader();
-  reader.onload=()=>{ let data; try{ data=JSON.parse(reader.result); }catch(err){ toast('Fichier illisible'); return; }
+  reader.onload=()=>{
+    let data; try{ data=JSON.parse(reader.result); }catch(err){ toast('Fichier illisible'); return; }
     if(!data||!Array.isArray(data.exercises)||!Array.isArray(data.machines)){ toast('Sauvegarde invalide'); return; }
     askConfirm('Restaurer cette sauvegarde ? Elle remplacera tes données actuelles ('+data.exercises.length+' exercices, '+data.machines.length+' machines).', ()=>{
       state={settings:data.settings||{weeklyGoal:3,restSeconds:60},machines:data.machines,exercises:data.exercises};
@@ -890,57 +1241,82 @@ function buildCSV(){
     rows.push([x.date,machineName(x.machineId),cardio?'Cardio':'Musculation',machineGroup(x.machineId),
       cardio?'':x.weight, cardio?'':x.sets, cardio?'':x.reps,
       cardio?x.programme:'', cardio?x.niveau:'', cardio?x.duree:'',
-      cardio?'':statusLabel(x.status), cfg, x.comment||'']); });
+      cardio?'':statusLabel(x.status), cfg, x.comment||'']);
+  });
   return rows.map(r=>r.map(csvCell).join(',')).join('\r\n');
 }
 function buildMD(){
   let md='# edoWorkout\n\n';
   groupByDate([...state.exercises]).slice().reverse().forEach(g=>{
     md+='## Séance du '+fmtDateFull(g.date)+'\n\n';
-    g.items.forEach(x=>{ const cardio=isCardioMachine(x.machineId);
-      if(cardio){ md+='### '+machineName(x.machineId)+' (Cardio)\n';
-        md+='- **Programme :** '+x.programme+'\n- **Niveau :** '+x.niveau+'\n- **Durée :** '+x.duree+' min\n'; }
-      else { md+='### '+machineName(x.machineId)+' ('+machineGroup(x.machineId)+')\n';
+    g.items.forEach(x=>{
+      const cardio=isCardioMachine(x.machineId);
+      if(cardio){
+        md+='### '+machineName(x.machineId)+' (Cardio)\n';
+        md+='- **Programme :** '+x.programme+'\n- **Niveau :** '+x.niveau+'\n- **Durée :** '+x.duree+' min\n';
+      } else {
+        md+='### '+machineName(x.machineId)+' ('+machineGroup(x.machineId)+')\n';
         md+='- **Poids :** '+x.weight+' kg\n- **Séries × répétitions :** '+x.sets+' × '+x.reps+'\n- **Résultat :** '+statusLabel(x.status)+'\n';
-        (x.configs||[]).forEach((c,i)=>{ md+='- **Configuration '+(i+1)+' :** '+c+'\n'; }); }
-      if(x.comment) md+='- **Commentaire :** '+x.comment+'\n'; md+='\n'; }); });
+        (x.configs||[]).forEach((c,i)=>{ md+='- **Configuration '+(i+1)+' :** '+c+'\n'; });
+      }
+      if(x.comment) md+='- **Commentaire :** '+x.comment+'\n';
+      md+='\n';
+    });
+  });
   return md;
 }
 function exportData(kind){
   if(!state.exercises.length){ toast('Aucune donnée à exporter'); return; }
-  const isCsv=kind==='csv'; const content=isCsv?buildCSV():buildMD(); const name='edoworkout.'+(isCsv?'csv':'md');
+  const isCsv=kind==='csv', content=isCsv?buildCSV():buildMD(), name='edoworkout.'+(isCsv?'csv':'md');
   downloadText(name,content,isCsv?'text/csv':'text/markdown');
   if(navigator.clipboard){ navigator.clipboard.writeText(content).then(()=>toast(name+' exporté ✓'),()=>toast('Export généré')); } else toast('Export généré');
 }
 
-/* ===== Toast ===== */
+/* ===== Toast (message éphémère) ===== */
 let toastT;
-function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2100); }
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2100);
+}
 
-/* ===== PWA ===== */
+/* ===== PWA : manifest + icône + service worker ===== */
 function setupPWA(){
   try{
+    // Icône écran d'accueil (iOS)
     const icon=document.createElement('link'); icon.rel='apple-touch-icon'; icon.href=ICON_URL; document.head.appendChild(icon);
+    // Manifest généré à la volée (Blob)
     const m={name:'edoWorkout',short_name:'edoWorkout',start_url:'.',scope:'.',display:'standalone',orientation:'portrait',
       background_color:'#0b0c0e',theme_color:'#0b0c0e',
       icons:[{src:ICON_URL,sizes:'192x192',type:'image/svg+xml',purpose:'any'},{src:ICON_URL,sizes:'512x512',type:'image/svg+xml',purpose:'any maskable'}]};
     const ml=document.createElement('link'); ml.rel='manifest';
     ml.href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/manifest+json'})); document.head.appendChild(ml);
   }catch(e){}
+  // Service worker : actif uniquement si hébergé en http(s) avec un sw.js à côté
   try{ if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){ navigator.serviceWorker.register('sw.js').catch(()=>{}); } }catch(e){}
 }
 
-/* ===== Init ===== */
-const _local=readLocal(); const _hadLocal=!!_local;
-state=_local||{settings:{weeklyGoal:3,restSeconds:60},machines:[],exercises:[]}; normalize(); render();
+/* ===== Démarrage ===== */
+const _local=readLocal();                  // données locales éventuelles
+const _hadLocal=!!_local;
+state=_local||{settings:{weeklyGoal:3,restSeconds:60},machines:[],exercises:[]};
+normalize();
+render();                                  // rendu immédiat (instantané)
+
 (async function init(){
   db=await idbOpen();
+  // Filet de sécurité : localStorage vidé mais base intacte → on restaure depuis la base
   if(db){ const fromIdb=await idbGet(); if(fromIdb && !_hadLocal){ state=fromIdb; normalize(); render(); } }
-  try{ if(navigator.storage){
-    if(navigator.storage.persisted) storagePersisted=await navigator.storage.persisted();
-    if(!storagePersisted && navigator.storage.persist) storagePersisted=await navigator.storage.persist();
-  } }catch(e){}
-  save(); setupPWA(); if(currentTab==='settings') renderSettings();
+  // Demande de stockage persistant (anti-purge iOS)
+  try{
+    if(navigator.storage){
+      if(navigator.storage.persisted) storagePersisted=await navigator.storage.persisted();
+      if(!storagePersisted && navigator.storage.persist) storagePersisted=await navigator.storage.persist();
+    }
+  }catch(e){}
+  save();                                  // aligne les deux stockages
+  setupPWA();
+  if(currentTab==='settings') renderSettings(); // rafraîchit la note de stockage si on est dans Réglages
 })();
 </script>
 </body>
