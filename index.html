@@ -37,18 +37,22 @@
   /* Le fond d'écran (dégradé + halos) est porté par <html> pour
      couvrir tout l'écran, même quand la page est courte. */
   html{
-    margin:0; padding:0; color-scheme:dark; min-height:100%;
-    background:
+    margin:0; padding:0; color-scheme:dark; min-height:100dvh;
+    background-color:#0c0e11;                        /* couleur de base : évite tout "trou" noir si le dégradé ne couvre pas */
+    background-image:
       radial-gradient(60vw 60vw at 12% 4%, rgba(197,242,74,.34), transparent 60%),
       radial-gradient(62vw 62vw at 88% 96%, rgba(74,150,242,.30), transparent 60%),
       linear-gradient(160deg,#1c2027 0%,#121419 52%,#0c0e11 100%);
-    background-attachment:fixed; background-repeat:no-repeat;
+    background-attachment:fixed; background-repeat:no-repeat; background-size:cover;
   }
   body{
     margin:0; padding:0; color:var(--text); background:transparent; min-height:100dvh;
     font-family:'Roboto',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; -webkit-font-smoothing:antialiased;
     padding-bottom:calc(84px + var(--safe-bot)); /* place pour la barre d'onglets */
   }
+  /* Le conteneur d'onglets occupe au moins toute la hauteur visible → pas d'espace
+     vide/noir quand une page est courte (ex : "Aujourd'hui" après enregistrement). */
+  #app{min-height:calc(100dvh - 96px - var(--safe-top) - var(--safe-bot));}
   button,input,select,textarea{font-family:inherit;}
   select option{background:#1b1d21; color:var(--text);}
 
@@ -180,14 +184,20 @@
   .btn.sm{padding:10px 14px; font-size:14px; border-radius:12px;}
 
   /* ---- Boutons flottants : "Nouvel exercice" (centre) + "Repos" (bulle, gauche) ---- */
+  /* "Nouvel exercice" : pilule centrée. Hauteur FIXE (54px) pour s'aligner
+     exactement avec la bulle du minuteur (même bottom + même hauteur). */
   .fab{position:fixed; left:50%; transform:translateX(-50%); bottom:calc(98px + var(--safe-bot)); background:var(--accent); color:#10130a;
-    border:none; padding:14px 24px; border-radius:30px; font-size:16px; font-weight:700;
+    border:none; height:54px; padding:0 24px; border-radius:30px; font-size:16px; font-weight:700;
     box-shadow:0 8px 26px rgba(0,0,0,.5), 0 0 22px rgba(197,242,74,.3); z-index:55; cursor:pointer; display:none; align-items:center; gap:8px;}
   .fab:active{transform:translateX(-50%) scale(.96);}
-  .restfab{position:fixed; left:16px; bottom:calc(98px + var(--safe-bot)); width:54px; height:54px; border-radius:50%;
+  /* Bulle du minuteur : même bottom + même hauteur (54px) que le FAB → bases alignées.
+     Position gauche/droite pilotée par les classes .left / .right (réglable). */
+  .restfab{position:fixed; bottom:calc(98px + var(--safe-bot)); width:54px; height:54px; border-radius:50%;
     background:var(--glass-strong); backdrop-filter:blur(20px) saturate(1.8); -webkit-backdrop-filter:blur(20px) saturate(1.8);
     border:1px solid var(--hi); color:var(--accent); display:none; align-items:center; justify-content:center;
     z-index:55; cursor:pointer; box-shadow:0 8px 26px rgba(0,0,0,.5);}
+  .restfab.left{left:16px; right:auto;}
+  .restfab.right{right:16px; left:auto;}
   .restfab svg{width:26px; height:26px;}
   .restfab:active{transform:scale(.94);}
 
@@ -203,6 +213,9 @@
   .restbar .rbtns button{background:rgba(255,255,255,.08); border:1px solid var(--hair); color:var(--text); border-radius:11px; padding:8px 13px; font-size:13px; font-weight:600; cursor:pointer;}
   .restprog{height:5px; border-radius:4px; background:rgba(255,255,255,.08); margin-top:9px; overflow:hidden;}
   .restprog>div{height:100%; background:var(--accent); width:100%; transition:width .35s linear;}
+  /* Fin du repos : le décompte est remplacé par "Terminé", clignotant en vert pomme. */
+  @keyframes restDoneBlink{0%,100%{opacity:1; transform:scale(1);} 50%{opacity:.25; transform:scale(1.04);}}
+  .restbar .rtime.done{color:var(--accent); animation:restDoneBlink 1s ease-in-out infinite; transform-origin:left center;}
 
   /* ---- Barre d'onglets (bas) ---- */
   .tabbar{position:fixed; bottom:0; left:0; right:0; background:var(--glass-strong); backdrop-filter:blur(28px) saturate(1.8);
@@ -331,6 +344,8 @@
 <div class="sheet-bg" id="sheet-bg" onclick="closeForm()"></div>
 <div class="sheet" id="sheet">
   <div class="grab"></div>
+  <!-- Barre du haut : bouton retour (annule l'ajout/la modification) -->
+  <div class="navbar" style="margin-bottom:4px"><button class="back" onclick="closeForm()">‹ Retour</button></div>
   <h3 id="sheet-title">Nouvel exercice</h3>
   <div class="field" id="date-readonly" style="display:none"><label>Séance</label><div class="readonly" id="f-date-label"></div></div>
   <div class="field"><label>Machine</label><select id="f-machine"></select></div>
@@ -369,6 +384,15 @@
       <div class="field"><label>Durée (min)</label>
         <input type="text" id="f-dur" inputmode="numeric" autocomplete="off" placeholder="30">
         <div class="err" id="err-dur">Entier ≥ 1.</div></div>
+    </div>
+    <!-- Champs facultatifs -->
+    <div class="two">
+      <div class="field"><label>Tour / minute <span class="muted">(facultatif)</span></label>
+        <input type="text" id="f-rpm" inputmode="numeric" autocomplete="off" placeholder="ex : 60">
+        <div class="err" id="err-rpm">Nombre ≥ 0.</div></div>
+      <div class="field"><label>Distance <span class="muted">(facultatif)</span></label>
+        <input type="text" id="f-dist" inputmode="decimal" autocomplete="off" placeholder="ex : 5 km">
+      </div>
     </div>
   </div>
 
@@ -414,7 +438,7 @@
    ================================================================ */
 
 /* ===== Constantes de version ===== */
-const VERSION='alpha-v1.0';
+const VERSION='alpha-v1.1';
 const VERSION_DATE='23 juin 2026';
 const MAX_CONFIGS=3;                                  // configs max par exercice muscu
 const CARDIO_PROGRAMS=['Manuel','Puissance','Fréquence cardiaque','Colline','Objectif +','Test de forme'];
@@ -459,7 +483,11 @@ const MACHINE_ART_GENERIC='<path d="M30 36 V60"/><path d="M22 42 V54"/><path d="
 
 /** Renvoie le SVG d'illustration d'une machine (par son nom). */
 function machineArt(name){
-  const inner=MACHINE_ART[(name||'').trim().toLowerCase()]||MACHINE_ART_GENERIC;
+  const key=(name||'').trim().toLowerCase();
+  // On essaie le nom complet, puis le nom sans la précision entre parenthèses
+  // (ex : "chest press (poignée vers l'avant)" → "chest press").
+  const base=key.replace(/\s*\(.*\)\s*$/,'').trim();
+  const inner=MACHINE_ART[key]||MACHINE_ART[base]||MACHINE_ART_GENERIC;
   return `<svg viewBox="0 0 96 96" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
 }
 
@@ -468,7 +496,7 @@ const STORE='edoworkout';
 const DEFAULT_MACHINES=[
   {name:'Leg press',group:'Jambes',type:'strength'},{name:'Leg extension',group:'Jambes',type:'strength'},
   {name:'Leg curl',group:'Jambes',type:'strength'},{name:'Hip abduction',group:'Jambes',type:'strength'},
-  {name:'Chest press',group:'Pectoraux',type:'strength'},{name:'Pectoral fly',group:'Pectoraux',type:'strength'},
+  {name:'Chest press (poignée vers l\'avant)',group:'Pectoraux',type:'strength'},{name:'Pectoral fly',group:'Pectoraux',type:'strength'},
   {name:'Pull down',group:'Dos',type:'strength'},
   {name:'Shoulder press',group:'Épaules',type:'strength'},{name:'Rear deltoid',group:'Épaules',type:'strength'},
   {name:'Biceps curl',group:'Bras',type:'strength'},
@@ -490,12 +518,14 @@ function normalize(){
   }
   state.machines.forEach(m=>{
     if((m.name||'').trim().toLowerCase()==='hip adduction') m.name='Hip abduction'; // correction de nom
+    if((m.name||'').trim().toLowerCase()==='chest press') m.name='Chest press (poignée vers l\'avant)'; // précision poignée
     if(!m.type) m.type='strength';
     if(!m.group) m.group=(m.type==='cardio')?'Cardio':(GROUP_BY_NAME[(m.name||'').trim().toLowerCase()]||'Autre');
   });
   if(!state.settings) state.settings={};
   state.settings.weeklyGoal=Math.max(1,Math.min(7,state.settings.weeklyGoal||3));
   state.settings.restSeconds=Math.max(15,Math.min(300,state.settings.restSeconds||60));
+  if(state.settings.restPos!=='left' && state.settings.restPos!=='right') state.settings.restPos='right'; // bulle à droite par défaut
   if(!state.exercises) state.exercises=[];
 }
 
@@ -574,7 +604,12 @@ function gymDays(weekStart){
 function groupByDate(list){
   const m={};
   list.forEach(x=>{ (m[x.date]=m[x.date]||[]).push(x); });
-  return Object.keys(m).sort((a,b)=>b.localeCompare(a)).map(d=>({date:d,items:m[d]}));
+  // Dates décroissantes, et à l'intérieur d'un jour : ordre de création décroissant
+  // (id basé sur l'horodatage → le plus récent d'abord).
+  return Object.keys(m).sort((a,b)=>b.localeCompare(a)).map(d=>({
+    date:d,
+    items:m[d].slice().sort((a,b)=>String(b.id).localeCompare(String(a.id)))
+  }));
 }
 function statusLabel(s){ return s==='success'?'Réussi':s==='partial'?'Partiel':'Échoué'; }
 function statusBadge(s){ return s==='success'?'<span class="badge b-ok">Réussi</span>':s==='partial'?'<span class="badge b-part">Partiel</span>':'<span class="badge b-fail">Échoué</span>'; }
@@ -657,7 +692,12 @@ function updateFloating(){
   const restShown=document.getElementById('restbar').classList.contains('show');
   const visible=(currentTab==='today' && !anyOverlayOpen() && !restShown);
   document.getElementById('fab').style.display=visible?'flex':'none';
-  document.getElementById('restfab').style.display=visible?'flex':'none';
+  const rf=document.getElementById('restfab');
+  rf.style.display=visible?'flex':'none';
+  // Position gauche/droite selon le réglage (droite par défaut)
+  const pos=(state.settings.restPos==='left')?'left':'right';
+  rf.classList.toggle('left',pos==='left');
+  rf.classList.toggle('right',pos==='right');
 }
 
 /** Rend l'onglet courant. */
@@ -673,9 +713,14 @@ function render(){
 function exerciseCard(x){
   // --- Cardio ---
   if(isCardioMachine(x.machineId)){
+    // Tags facultatifs (n'apparaissent que s'ils sont renseignés)
+    const extra=[];
+    if(x.rpm!==''&&x.rpm!=null) extra.push(`<span class="tag"><b>Tr/min</b> · ${esc(String(x.rpm))}</span>`);
+    if(x.distance!==''&&x.distance!=null) extra.push(`<span class="tag"><b>Distance</b> · ${esc(String(x.distance))}</span>`);
     return `<div class="card ex" onclick="editExercise('${x.id}')">
       <div class="top"><div class="nm">${esc(machineName(x.machineId))}</div><span class="badge b-cardio">Cardio</span></div>
       <div class="row between"><div class="big">${x.duree} min <small>·</small> Niv. ${x.niveau} <small>·</small> ${esc(x.programme||'')}</div></div>
+      ${extra.length?`<div class="tags">${extra.join('')}</div>`:''}
       ${x.comment?`<div class="cmt">${esc(x.comment)}</div>`:''}</div>`;
   }
   // --- Musculation ---
@@ -692,7 +737,8 @@ function exerciseCard(x){
 /** Onglet "Aujourd'hui" : séance du jour + bouton "Répéter la dernière séance". */
 function renderToday(){
   const t=todayISO();
-  const items=state.exercises.filter(x=>x.date===t);
+  // Plus récemment créé d'abord (id horodaté décroissant)
+  const items=state.exercises.filter(x=>x.date===t).sort((a,b)=>String(b.id).localeCompare(String(a.id)));
   const hasPast=state.exercises.some(x=>x.date<t);
   const body=items.length
     ? items.map(exerciseCard).join('')
@@ -860,34 +906,40 @@ function closeMachine(){ document.getElementById('screen-machine').classList.rem
 
 /** Onglet "Réglages". */
 function renderSettings(){
-  const g=state.settings.weeklyGoal||1, rs=state.settings.restSeconds||60;
-  const storeMsg='Tes données vivent dans une base locale (IndexedDB) sur cet appareil, avec une copie de secours. '+
-    (storagePersisted?'Stockage persistant activé ✓ — peu de risque d\'effacement par iOS.':'Pense à exporter une sauvegarde régulièrement.');
+  const g=state.settings.weeklyGoal||1, rs=state.settings.restSeconds||60, rp=state.settings.restPos||'right';
+  const storeMsg=storagePersisted?'Stockage persistant activé ✓':''; // garde uniquement cette mention
   setView(`<h1>Réglages</h1>
     <h2>Objectif hebdomadaire</h2>
     <div class="card"><label>Nombre de séances par semaine</label>
-      <div class="stepper"><button id="goal-minus" onclick="changeGoal(-1)">−</button><span class="val" id="goalval">${g}</span><button id="goal-plus" onclick="changeGoal(1)">＋</button></div>
-      <p class="note">Entre 1 et 7 séances par semaine.</p></div>
+      <div class="stepper"><button id="goal-minus" onclick="changeGoal(-1)">−</button><span class="val" id="goalval">${g}</span><button id="goal-plus" onclick="changeGoal(1)">＋</button></div></div>
     <h2>Minuteur de repos</h2>
     <div class="card"><label>Durée de repos par défaut (secondes)</label>
       <div class="stepper"><button id="rest-minus" onclick="changeRest(-15)">−</button><span class="val" id="restval">${rs}</span><button id="rest-plus" onclick="changeRest(15)">＋</button></div>
-      <p class="note">De 15 à 300 secondes (par pas de 15). Lance-le avec la bulle ⏱ en bas à gauche, entre tes séries.</p></div>
+      <label style="margin:16px 0 7px">Position de la bulle ⏱</label>
+      <div class="seg" id="restpos-seg">
+        <button data-p="left" class="${rp==='left'?'sel ok':''}" onclick="setRestPos('left')">Gauche</button>
+        <button data-p="right" class="${rp==='right'?'sel ok':''}" onclick="setRestPos('right')">Droite</button>
+      </div></div>
     <h2>Machines</h2>
     <div class="card mcard" onclick="openMachinesEdit()"><div><div class="name">Mes machines</div><div class="meta">${state.machines.length} machine${state.machines.length>1?'s':''}</div></div><span class="chev">›</span></div>
     <h2>Sauvegarde &amp; restauration</h2>
     <div class="card">
       <button class="btn" onclick="exportBackup()">Exporter une sauvegarde (.json)</button>
       <button class="btn ghost" style="margin-top:10px" onclick="importBackup()">Importer une sauvegarde</button>
-      <p class="note">${storeMsg}</p></div>
-    <h2>Exporter pour lecture</h2>
-    <div class="card">
-      <button class="btn ghost" onclick="exportData('csv')">Exporter en CSV</button>
-      <button class="btn ghost" style="margin-top:10px" onclick="exportData('md')">Exporter en Markdown</button></div>
+      <button class="btn ghost" style="margin-top:10px" onclick="exportData('md')">Exporter en Markdown (lecture)</button>
+      ${storeMsg?`<p class="note">${storeMsg}</p>`:''}</div>
     <h2>Zone sensible</h2>
     <div class="card"><button class="btn danger" onclick="resetAll()">Tout effacer</button></div>
     <p class="ver"><b>edoWorkout</b> · ${VERSION} · ${VERSION_DATE}</p><div style="height:60px"></div>`);
   document.getElementById('goal-minus').disabled=(g<=1); document.getElementById('goal-plus').disabled=(g>=7);
   document.getElementById('rest-minus').disabled=(rs<=15); document.getElementById('rest-plus').disabled=(rs>=300);
+}
+/** Choix de la position de la bulle du minuteur (gauche / droite). */
+function setRestPos(p){
+  state.settings.restPos=(p==='left')?'left':'right'; save();
+  document.querySelectorAll('#restpos-seg button').forEach(b=>b.classList.toggle('sel',b.dataset.p===state.settings.restPos));
+  document.querySelectorAll('#restpos-seg button').forEach(b=>b.classList.toggle('ok',b.dataset.p===state.settings.restPos));
+  updateFloating();
 }
 // Modifications "en place" (sans re-rendre tout l'onglet → pas de clignotement)
 function changeGoal(d){
@@ -962,7 +1014,7 @@ function resetAll(){
 /** Duplique un exercice pour aujourd'hui (résultat/commentaire remis à zéro). */
 function cloneForToday(x){
   if(isCardioMachine(x.machineId))
-    return {id:uid(),date:todayISO(),machineId:x.machineId,programme:x.programme,niveau:x.niveau,duree:x.duree,comment:''};
+    return {id:uid(),date:todayISO(),machineId:x.machineId,programme:x.programme,niveau:x.niveau,duree:x.duree,rpm:x.rpm??'',distance:x.distance??'',comment:''};
   return {id:uid(),date:todayISO(),machineId:x.machineId,weight:x.weight,sets:x.sets,reps:x.reps,status:'success',configs:(x.configs||[]).slice(0,MAX_CONFIGS),comment:''};
 }
 function repeatLastSession(){
@@ -985,8 +1037,17 @@ function repeatLastForMachine(id){
   save(); openMachine(id); toast('Exercice répété ✓');
 }
 
-/* ===== Minuteur de repos (lancé manuellement via la bulle ⏱) ===== */
-let restInt=null, restRem=0, restTot=0, actx=null;
+/* ===== Minuteur de repos (lancé manuellement via la bulle ⏱) =====
+   Le décompte est calculé à partir d'un HORODATAGE de fin (restEnd) plutôt
+   qu'avec un simple compteur : ainsi le temps réel s'écoule même si l'app
+   est mise en arrière-plan ou fermée, puis rouverte. L'état est aussi
+   sauvegardé dans localStorage pour survivre à un rechargement complet. */
+const REST_KEY='edoworkout-rest';
+let restInt=null;      // intervalle d'affichage (1 s)
+let restEnd=0;         // horodatage (ms) de fin du repos
+let restTot=0;         // durée totale (s) pour la barre de progression
+let restDone=false;    // le repos est-il déjà terminé ?
+let actx=null;
 function initAudio(){ try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended') actx.resume(); }catch(e){} }
 function beep(){
   try{
@@ -1001,27 +1062,74 @@ function beep(){
 }
 function showRest(){ document.getElementById('restbar').classList.add('show'); updateFloating(); }
 function hideRest(){ document.getElementById('restbar').classList.remove('show'); updateFloating(); }
+
+/** Secondes restantes (peut être négatif → 0). */
+function restRemaining(){ return Math.max(0,Math.ceil((restEnd-Date.now())/1000)); }
+
+/** Met à jour l'affichage (temps + barre). */
 function restUI(){
-  document.getElementById('rest-time').textContent=Math.max(restRem,0)+' s';
-  document.getElementById('rest-fill').style.width=(restTot?Math.max(restRem,0)/restTot*100:0)+'%';
+  const el=document.getElementById('rest-time');
+  if(restDone){
+    el.textContent='Terminé'; el.classList.add('done');
+    document.getElementById('rest-fill').style.width='0%';
+    return;
+  }
+  el.classList.remove('done');
+  const rem=restRemaining();
+  el.textContent=rem+' s';
+  document.getElementById('rest-fill').style.width=(restTot?rem/restTot*100:0)+'%';
 }
+
+/** Boucle d'affichage : se base sur l'heure réelle, déclenche la fin au bon moment. */
+function restTick(){
+  if(restDone) return;
+  if(restRemaining()<=0){ finishRest(); return; }
+  restUI();
+}
+function startInterval(){ if(restInt) clearInterval(restInt); restInt=setInterval(restTick,250); }
+function persistRest(){ try{ localStorage.setItem(REST_KEY,JSON.stringify({end:restEnd,tot:restTot})); }catch(e){} }
+function clearPersistRest(){ try{ localStorage.removeItem(REST_KEY); }catch(e){} }
+
 function startRest(sec){
   initAudio();                                        // prépare l'audio dans le geste utilisateur (iOS)
-  if(restInt) clearInterval(restInt);
-  restTot=sec; restRem=sec; showRest(); restUI();
-  restInt=setInterval(()=>{
-    restRem--; restUI();
-    if(restRem<=0){ clearInterval(restInt); restInt=null; finishRest(); }
-  },1000);
+  restDone=false; restTot=sec; restEnd=Date.now()+sec*1000;
+  persistRest(); showRest(); restUI(); startInterval();
 }
-function addRest(s){ restRem+=s; restTot=Math.max(restTot,restRem); restUI(); }
-function stopRest(){ if(restInt){ clearInterval(restInt); restInt=null; } hideRest(); }
+function addRest(s){
+  if(restDone){ // relance un court repos si on rajoute du temps après la fin
+    restDone=false; document.getElementById('rest-time').classList.remove('done');
+    restEnd=Date.now()+s*1000; restTot=s;
+  } else {
+    restEnd+=s*1000; restTot=Math.max(restTot,restRemaining());
+  }
+  persistRest(); startInterval(); restUI();
+}
+function stopRest(){
+  if(restInt){ clearInterval(restInt); restInt=null; }
+  restDone=false; document.getElementById('rest-time').classList.remove('done');
+  clearPersistRest(); hideRest();
+}
 function finishRest(){
-  document.getElementById('rest-time').textContent='Terminé ✓';
+  if(restInt){ clearInterval(restInt); restInt=null; }
+  restDone=true; restUI();                            // affiche "Terminé" clignotant (vert pomme)
+  clearPersistRest();
   try{ if(navigator.vibrate) navigator.vibrate([130,70,130]); }catch(e){}
-  beep(); toast('Repos terminé 💪');
-  setTimeout(hideRest,1600);
+  beep();                                             // pas de toast/notification supplémentaire
+  setTimeout(()=>{ if(restDone){ document.getElementById('rest-time').classList.remove('done'); hideRest(); restDone=false; } },4000);
 }
+
+/** Reprend un repos en cours après réouverture/rechargement de l'app. */
+function resumeRest(){
+  let saved=null; try{ saved=JSON.parse(localStorage.getItem(REST_KEY)); }catch(e){}
+  if(!saved||!saved.end){ return; }
+  restEnd=saved.end; restTot=saved.tot||Math.ceil((saved.end-Date.now())/1000);
+  if(restRemaining()>0){ restDone=false; showRest(); restUI(); startInterval(); }
+  else { clearPersistRest(); }                        // déjà fini pendant l'absence : on n'affiche rien
+}
+// Quand l'app revient au premier plan, on resynchronise immédiatement l'affichage.
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ if(localStorage.getItem(REST_KEY)) resumeRest(); else restTick(); setTimeout(nudgeLayout,60); } });
+window.addEventListener('focus',()=>{ if(localStorage.getItem(REST_KEY)) resumeRest(); setTimeout(nudgeLayout,60); });
+window.addEventListener('pageshow',()=>setTimeout(nudgeLayout,60));
 
 /* ===== Modales (confirmation + info) ===== */
 let confirmYes=null;
@@ -1085,7 +1193,7 @@ function addConfigRow(val){
 function relabelConfigs(){ document.querySelectorAll('#f-configs .cfgrow .cfglabel').forEach((l,i)=>l.textContent='Configuration '+(i+1)); }
 
 /* --- Erreurs de validation --- */
-function clearErrors(){ ['weight','sets','reps','level','dur'].forEach(k=>{ document.getElementById('f-'+k).classList.remove('bad'); document.getElementById('err-'+k).classList.remove('show'); }); }
+function clearErrors(){ ['weight','sets','reps','level','dur','rpm'].forEach(k=>{ document.getElementById('f-'+k).classList.remove('bad'); const e=document.getElementById('err-'+k); if(e) e.classList.remove('show'); }); }
 function showErr(id,on){ document.getElementById('f-'+id).classList.toggle('bad',on); document.getElementById('err-'+id).classList.toggle('show',on); }
 
 /** Mini-mémoire : pré-remplit avec le dernier exercice de la machine. */
@@ -1093,8 +1201,10 @@ function prefillFromLast(id){
   clearConfigs(); clearErrors();
   const cardio=isCardioMachine(id), x=lastForMachine(id);
   if(cardio){
-    if(x){ document.getElementById('f-prog').value=x.programme||'Manuel'; document.getElementById('f-level').value=x.niveau??''; document.getElementById('f-dur').value=x.duree??30; }
-    else  { document.getElementById('f-prog').value='Manuel'; document.getElementById('f-level').value=''; document.getElementById('f-dur').value=30; }
+    if(x){ document.getElementById('f-prog').value=x.programme||'Manuel'; document.getElementById('f-level').value=x.niveau??''; document.getElementById('f-dur').value=x.duree??30;
+      document.getElementById('f-rpm').value=x.rpm??''; document.getElementById('f-dist').value=x.distance??''; }
+    else  { document.getElementById('f-prog').value='Manuel'; document.getElementById('f-level').value=''; document.getElementById('f-dur').value=30;
+      document.getElementById('f-rpm').value=''; document.getElementById('f-dist').value=''; }
   } else {
     if(x){
       document.getElementById('f-weight').value=x.weight; document.getElementById('f-sets').value=x.sets; document.getElementById('f-reps').value=x.reps;
@@ -1120,6 +1230,7 @@ function openForm(opts){
     sel.value=x.machineId; setFormMode(x.machineId);
     if(cardio){
       document.getElementById('f-prog').value=x.programme||'Manuel'; document.getElementById('f-level').value=x.niveau??''; document.getElementById('f-dur').value=x.duree??30;
+      document.getElementById('f-rpm').value=x.rpm??''; document.getElementById('f-dist').value=x.distance??'';
     } else {
       document.getElementById('f-weight').value=x.weight; document.getElementById('f-sets').value=x.sets; document.getElementById('f-reps').value=x.reps;
       setStatus(x.status||'success'); clearConfigs(); (x.configs||[]).slice(0,MAX_CONFIGS).forEach(c=>addConfigRow(c));
@@ -1155,8 +1266,14 @@ function saveExercise(){
     const lOk=/^\d+$/.test(lRaw)&&lvl>=1&&lvl<=25; showErr('level',!lOk); if(!lOk) ok=false;
     const dRaw=document.getElementById('f-dur').value.trim(), dur=Number(dRaw);
     const dOk=/^\d+$/.test(dRaw)&&dur>=1; showErr('dur',!dOk); if(!dOk) ok=false;
+    // Champs facultatifs : tour/minute (numérique ≥ 0 si renseigné) + distance (texte libre)
+    const rpmRaw=document.getElementById('f-rpm').value.trim().replace(',','.');
+    let rpm='';
+    if(rpmRaw!==''){ const rOk2=/^\d*\.?\d+$/.test(rpmRaw)&&Number(rpmRaw)>=0; showErr('rpm',!rOk2); if(!rOk2) ok=false; else rpm=Math.round(Number(rpmRaw)*100)/100; }
+    else showErr('rpm',false);
+    const distance=document.getElementById('f-dist').value.trim();
     if(!ok){ toast('Vérifie les champs en rouge'); return; }
-    data={machineId,programme:document.getElementById('f-prog').value,niveau:lvl,duree:dur,comment};
+    data={machineId,programme:document.getElementById('f-prog').value,niveau:lvl,duree:dur,rpm,distance,comment};
   } else {
     // --- Validation MUSCU ---
     let ok=true;
@@ -1207,9 +1324,24 @@ function deleteCurrent(){
 function downloadText(name,content,mime){
   try{
     const blob=new Blob([content],{type:mime+';charset=utf-8'}), url=URL.createObjectURL(blob);
-    const a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click();
+    const a=document.createElement('a'); a.href=url; a.download=name;
+    a.style.cssText='position:fixed;left:-9999px;top:0;opacity:0';  // hors-flux : n'altère pas la mise en page
+    document.body.appendChild(a); a.click();
     setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); },1000);
+    setTimeout(nudgeLayout,400);                                   // resynchronise les barres fixes au retour
   }catch(e){ console.warn(e); }
+}
+/** Corrige le mauvais placement des éléments en position:fixed (barre d'onglets,
+    boutons flottants) après une feuille système iOS (partage/enregistrement de
+    fichier), qui décale parfois ces barres au milieu de l'écran. */
+function nudgeLayout(){
+  try{
+    const tb=document.querySelector('.tabbar');
+    if(tb){ tb.style.transform='translateZ(0)'; void tb.offsetHeight; tb.style.transform=''; }
+    document.body.style.minHeight='100dvh';
+    void document.body.offsetHeight;                               // force un recalcul de mise en page
+    window.scrollTo(0,window.scrollY);
+  }catch(e){}
 }
 function exportBackup(){
   const payload={app:'edoWorkout',version:VERSION,exported:new Date().toISOString(),settings:state.settings,machines:state.machines,exercises:state.exercises};
@@ -1234,13 +1366,14 @@ document.getElementById('import-file').addEventListener('change',function(e){
 });
 function csvCell(v){ v=String(v??''); return /[",\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
 function buildCSV(){
-  const rows=[['Date','Machine','Type','Groupe','Poids (kg)','Series','Repetitions','Programme','Niveau','Duree (min)','Resultat','Configurations','Commentaire']];
+  const rows=[['Date','Machine','Type','Groupe','Poids (kg)','Series','Repetitions','Programme','Niveau','Duree (min)','Tr/min','Distance','Resultat','Configurations','Commentaire']];
   [...state.exercises].sort((a,b)=>a.date.localeCompare(b.date)).forEach(x=>{
     const cardio=isCardioMachine(x.machineId);
     const cfg=cardio?'':(x.configs||[]).map((c,i)=>'Configuration '+(i+1)+': '+c).join(' | ');
     rows.push([x.date,machineName(x.machineId),cardio?'Cardio':'Musculation',machineGroup(x.machineId),
       cardio?'':x.weight, cardio?'':x.sets, cardio?'':x.reps,
       cardio?x.programme:'', cardio?x.niveau:'', cardio?x.duree:'',
+      cardio?(x.rpm??''):'', cardio?(x.distance??''):'',
       cardio?'':statusLabel(x.status), cfg, x.comment||'']);
   });
   return rows.map(r=>r.map(csvCell).join(',')).join('\r\n');
@@ -1254,6 +1387,8 @@ function buildMD(){
       if(cardio){
         md+='### '+machineName(x.machineId)+' (Cardio)\n';
         md+='- **Programme :** '+x.programme+'\n- **Niveau :** '+x.niveau+'\n- **Durée :** '+x.duree+' min\n';
+        if(x.rpm!==''&&x.rpm!=null) md+='- **Tour / minute :** '+x.rpm+'\n';
+        if(x.distance!==''&&x.distance!=null) md+='- **Distance :** '+x.distance+'\n';
       } else {
         md+='### '+machineName(x.machineId)+' ('+machineGroup(x.machineId)+')\n';
         md+='- **Poids :** '+x.weight+' kg\n- **Séries × répétitions :** '+x.sets+' × '+x.reps+'\n- **Résultat :** '+statusLabel(x.status)+'\n';
@@ -1302,6 +1437,7 @@ const _hadLocal=!!_local;
 state=_local||{settings:{weeklyGoal:3,restSeconds:60},machines:[],exercises:[]};
 normalize();
 render();                                  // rendu immédiat (instantané)
+resumeRest();                              // reprend un repos en cours (app rouverte / rechargée)
 
 (async function init(){
   db=await idbOpen();
