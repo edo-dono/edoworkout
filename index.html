@@ -131,9 +131,22 @@
   .mthumb{width:48px; height:48px; flex:none; border-radius:13px; background:rgba(255,255,255,.05);
     border:1px solid var(--hair); display:flex; align-items:center; justify-content:center; color:var(--accent);}
   .mthumb svg{width:32px; height:32px;}
+  .mthumb .mphoto{width:100%; height:100%; object-fit:cover; border-radius:13px; display:block;}
   .mhero{width:88px; height:88px; border-radius:20px; background:rgba(255,255,255,.05); border:1px solid var(--hair);
-    display:flex; align-items:center; justify-content:center; color:var(--accent); margin:2px 0 12px;}
+    display:flex; align-items:center; justify-content:center; color:var(--accent); margin:2px 0 12px; position:relative; overflow:hidden;}
   .mhero svg{width:58px; height:58px;}
+  .mhero .mphoto{width:100%; height:100%; object-fit:cover; border-radius:20px; display:block;}
+  .mhero.photo{cursor:zoom-in;}
+  .mhero .zoomhint{position:absolute; bottom:4px; right:4px; background:var(--glass-strong); border:1px solid var(--hi);
+    border-radius:8px; font-size:12px; line-height:1; padding:3px 5px; color:var(--text); pointer-events:none;}
+
+  /* ---- Lightbox : photo de machine en plein écran (zoom) ---- */
+  .zoom-bg{position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:95; display:none; align-items:center; justify-content:center;
+    padding:calc(var(--safe-top) + 16px) 16px calc(var(--safe-bot) + 16px);}
+  .zoom-bg.open{display:flex;}
+  .zoom-bg img{max-width:100%; max-height:100%; object-fit:contain; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.6);}
+  .zoom-close{position:absolute; top:calc(var(--safe-top) + 12px); right:16px; width:40px; height:40px; border-radius:50%;
+    background:var(--glass-strong); border:1px solid var(--hi); color:var(--text); font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center;}
 
   /* ---- Badges de résultat / type ---- */
   .badge{display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:600; padding:3px 9px; border-radius:20px;}
@@ -420,6 +433,12 @@
   </div>
 </div>
 
+<!-- Lightbox photo de machine (zoom plein écran) -->
+<div class="zoom-bg" id="zoom-bg" onclick="closePhotoZoom()">
+  <button class="zoom-close" onclick="closePhotoZoom()" aria-label="Fermer">✕</button>
+  <img id="zoom-img" src="" alt="Photo de la machine">
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -438,8 +457,8 @@
    ================================================================ */
 
 /* ===== Constantes de version ===== */
-const VERSION='alpha-v1.1';
-const VERSION_DATE='23 juin 2026';
+const VERSION='alpha-v1.2';
+const VERSION_DATE='24 juin 2026';
 const MAX_CONFIGS=3;                                  // configs max par exercice muscu
 const CARDIO_PROGRAMS=['Manuel','Puissance','Fréquence cardiaque','Colline','Objectif +','Test de forme'];
 
@@ -455,7 +474,7 @@ const GROUP_BY_NAME={
   'leg press':'Jambes','leg extension':'Jambes','leg curl':'Jambes','hip abduction':'Jambes','hip adduction':'Jambes',
   'chest press':'Pectoraux','pectoral fly':'Pectoraux','pull down':'Dos',
   'shoulder press':'Épaules','rear deltoid':'Épaules','biceps curl':'Bras','abdominal':'Abdos',
-  'vélo elliptique':'Cardio','escaliers mécaniques':'Cardio',"vélo d'appartement":'Cardio','rameur':'Cardio','tapis de course':'Cardio','vélo couché':'Cardio'
+  'vélo elliptique':'Cardio','escaliers mécaniques':'Cardio',"vélo d'appartement":'Cardio',"vélo d'entraînement":'Cardio','rameur':'Cardio','tapis de course':'Cardio','vélo couché':'Cardio'
 };
 
 /* ===== Illustrations des machines (tracés SVG, clé = nom en minuscules) ===== */
@@ -475,6 +494,7 @@ const MACHINE_ART={
   'vélo elliptique':'<circle cx="48" cy="22" r="6"/><path d="M48 28 V50"/><path d="M48 34 L36 26"/><path d="M48 34 L60 26"/><path d="M48 50 L34 70"/><path d="M48 50 L62 70"/><ellipse cx="48" cy="78" rx="26" ry="6"/>',
   'escaliers mécaniques':'<path d="M18 78 H34 V66 H50 V54 H66 V42 H80"/><circle cx="40" cy="32" r="6"/><path d="M40 38 V54"/><path d="M40 44 L52 48"/><path d="M40 54 L32 66"/><path d="M40 54 L52 60"/>',
   "vélo d'appartement":'<circle cx="34" cy="62" r="13"/><path d="M34 62 L50 40"/><path d="M50 40 L44 36"/><path d="M50 40 L66 40"/><path d="M66 40 L70 28"/><path d="M28 40 H44"/><path d="M34 40 V30"/>',
+  "vélo d'entraînement":'<circle cx="34" cy="62" r="13"/><path d="M34 62 L50 40"/><path d="M50 40 L44 36"/><path d="M50 40 L66 40"/><path d="M66 40 L70 28"/><path d="M28 40 H44"/><path d="M34 40 V30"/>',
   'rameur':'<path d="M16 74 H80"/><circle cx="42" cy="50" r="6"/><path d="M42 56 L48 66"/><path d="M42 52 L28 46"/><path d="M28 46 L20 50"/><path d="M48 66 L62 66"/><path d="M42 52 V60"/>',
   'tapis de course':'<path d="M18 74 H66 L74 66"/><path d="M22 74 L24 66 H68"/><circle cx="44" cy="28" r="6"/><path d="M44 34 V48"/><path d="M44 40 L34 44"/><path d="M44 40 L54 36"/><path d="M44 48 L36 60"/><path d="M44 48 L54 60"/>',
   'vélo couché':'<circle cx="26" cy="66" r="10"/><circle cx="72" cy="68" r="7"/><path d="M26 66 H64"/><path d="M64 66 L72 68"/><path d="M26 66 L18 50 H34"/><path d="M64 66 L52 54"/><circle cx="22" cy="46" r="5"/>'
@@ -491,6 +511,49 @@ function machineArt(name){
   return `<svg viewBox="0 0 96 96" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
 }
 
+/* ===== Photos des machines (URLs externes ; repli sur le tracé SVG hors-ligne) =====
+   Clé = nom en minuscules (la précision entre parenthèses est ignorée à la recherche). */
+const MACHINE_PHOTO={
+  'vélo elliptique':'https://shop.lifefitness.com/cdn/shop/files/E1-Crosstrainer-TrackConnect-console-standardview.jpg?v=1748945392&width=500',
+  'tapis de course':'https://shop.lifefitness.com/cdn/shop/files/F3-Treadmill-Track_Connect-console-StandardView.jpg?v=1748945393&width=500',
+  'pectoral fly':'https://shop.lifefitness.com/cdn/shop/files/axiom-life-fitness-pectoralfly-reardealt-platinum-black-1000x1000.jpg?v=1748945227&width=500',
+  'abdominal':'https://shop.lifefitness.com/cdn/shop/files/axiom-life-fitness-abdominal-back-extension-platinum-black-1000x1000.jpg?v=1748945229&width=500',
+  'hip abduction':'https://shop.lifefitness.com/cdn/shop/files/axiom-life-fitness-abductor-adductor-charcoal-black-1000x1000.jpg?v=1748945228&width=800',
+  'chest press':'https://shop.lifefitness.com/cdn/shop/files/CI-MP_Cybex_Ion_Multi-Press-charcoal-black-1000x1000.jpg?v=1748945222&width=800',
+  'leg curl':'https://shop.lifefitness.com/cdn/shop/files/axiom-leg-curl-charcoal-black_1000x1000_a2eabf9b-7f98-45e3-81f5-d65a9974d475.jpg?v=1748945224&width=800',
+  "vélo d'entraînement":'https://shop.lifefitness.com/cdn/shop/products/C1-Upright-Go-L_056393d2-4eb8-46c5-869f-9a5740237931.jpg?v=1748945387&width=800',
+  'vélo couché':'https://shop.lifefitness.com/cdn/shop/products/RS1-Recumbent-Go-L_0f9f29ba-8242-4e6e-9cad-0adc5794b2dc.jpg?v=1748945384&width=800'
+};
+/** Renvoie l'URL de la photo d'une machine (ou null), avec repli sur le nom sans parenthèses. */
+function machinePhotoURL(name){
+  const key=(name||'').trim().toLowerCase();
+  const base=key.replace(/\s*\(.*\)\s*$/,'').trim();
+  return MACHINE_PHOTO[key]||MACHINE_PHOTO[base]||null;
+}
+/** Si une photo ne charge pas (hors-ligne), on la remplace par le tracé SVG. */
+function imgFallback(img){
+  try{
+    const span=document.createElement('span');
+    span.innerHTML=machineArt(img.getAttribute('data-name'));
+    const svg=span.firstChild; img.replaceWith(svg);
+    const hero=svg.closest('.mhero'); if(hero){ hero.classList.remove('photo'); hero.onclick=null; const h=hero.querySelector('.zoomhint'); if(h) h.remove(); }
+  }catch(e){}
+}
+/** Vignette de machine (photo si dispo, sinon tracé SVG). */
+function machineThumbHTML(m){
+  const url=machinePhotoURL(m.name);
+  return url
+    ? `<span class="mthumb"><img class="mphoto" src="${url}" data-name="${esc(m.name)}" alt="" onerror="imgFallback(this)"></span>`
+    : `<span class="mthumb">${machineArt(m.name)}</span>`;
+}
+/** Grande image (hero) de la fiche machine — zoomable au toucher si c'est une photo. */
+function machineHeroHTML(m){
+  const url=machinePhotoURL(m.name);
+  return url
+    ? `<div class="mhero photo" onclick="openPhotoZoom('${url}')"><img class="mphoto" src="${url}" data-name="${esc(m.name)}" alt="" onerror="imgFallback(this)"><span class="zoomhint">⤢</span></div>`
+    : `<div class="mhero">${machineArt(m.name)}</div>`;
+}
+
 /* ===== État + machines par défaut ===== */
 const STORE='edoworkout';
 const DEFAULT_MACHINES=[
@@ -502,7 +565,7 @@ const DEFAULT_MACHINES=[
   {name:'Biceps curl',group:'Bras',type:'strength'},
   {name:'Abdominal',group:'Abdos',type:'strength'},
   {name:'Vélo elliptique',group:'Cardio',type:'cardio'},{name:'Escaliers mécaniques',group:'Cardio',type:'cardio'},
-  {name:"Vélo d'appartement",group:'Cardio',type:'cardio'},{name:'Rameur',group:'Cardio',type:'cardio'},
+  {name:"Vélo d'entraînement",group:'Cardio',type:'cardio'},{name:'Rameur',group:'Cardio',type:'cardio'},
   {name:'Tapis de course',group:'Cardio',type:'cardio'},{name:'Vélo couché',group:'Cardio',type:'cardio'}
 ];
 let state={ settings:{weeklyGoal:3,restSeconds:60}, machines:[], exercises:[] };
@@ -519,6 +582,7 @@ function normalize(){
   state.machines.forEach(m=>{
     if((m.name||'').trim().toLowerCase()==='hip adduction') m.name='Hip abduction'; // correction de nom
     if((m.name||'').trim().toLowerCase()==='chest press') m.name='Chest press (poignée vers l\'avant)'; // précision poignée
+    if((m.name||'').trim().toLowerCase()==="vélo d'appartement") m.name="Vélo d'entraînement"; // renommage v1.2
     if(!m.type) m.type='strength';
     if(!m.group) m.group=(m.type==='cardio')?'Cardio':(GROUP_BY_NAME[(m.name||'').trim().toLowerCase()]||'Autre');
   });
@@ -820,7 +884,7 @@ function machineCardHTML(m){
   if(!last) meta='Aucun exercice';
   else if(m.type==='cardio') meta=`${ss.length} séance${ss.length>1?'s':''} · dernier : ${last.duree} min · niv ${last.niveau}`;
   else meta=`${ss.length} exo${ss.length>1?'s':''} · dernier : ${last.sets}×${last.reps}${last.weight?(' · '+last.weight+'kg'):''}`;
-  return `<div class="card mcard" onclick="openMachine('${m.id}')"><div class="mleft"><span class="mthumb">${machineArt(m.name)}</span><div><div class="name">${esc(m.name)}</div><div class="meta">${meta}</div></div></div><span class="chev">›</span></div>`;
+  return `<div class="card mcard" onclick="openMachine('${m.id}')"><div class="mleft">${machineThumbHTML(m)}<div><div class="name">${esc(m.name)}</div><div class="meta">${meta}</div></div></div><span class="chev">›</span></div>`;
 }
 
 /** Onglet "Machines" : liste rangée par catégorie/groupe. */
@@ -892,7 +956,7 @@ function openMachine(id){
   const screen=document.getElementById('screen-machine');
   document.getElementById('screen-machine-inner').innerHTML=`
     <div class="navbar"><button class="back" onclick="closeMachine()">‹ Machines</button></div>
-    <div class="mhero">${machineArt(m.name)}</div>
+    ${machineHeroHTML(m)}
     <h1>${esc(m.name)}</h1><p class="sub">${cardio?'Cardio':esc(m.group||'Autre')} · ${ss.length} ${cardio?'séance':'exercice'}${ss.length>1?'s':''}</p>
     <div class="row" style="gap:10px;margin:14px 0 4px">
       <button class="btn sm" style="flex:1" onclick="openForm({machineId:'${id}'})">＋ ${cardio?'Nouvelle séance':'Nouvel exercice'}</button>${repeatBtn}
@@ -1146,11 +1210,17 @@ document.getElementById('confirm-bg').addEventListener('click',e=>{ if(e.target.
 
 function showInfo(title,msg){ document.getElementById('info-title').textContent=title; document.getElementById('info-msg').textContent=msg; document.getElementById('info-bg').classList.add('open'); }
 function closeInfo(){ document.getElementById('info-bg').classList.remove('open'); }
+/* ----- Zoom photo machine ----- */
+function openPhotoZoom(url){ if(!url) return; document.getElementById('zoom-img').src=url; document.getElementById('zoom-bg').classList.add('open'); }
+function closePhotoZoom(){ document.getElementById('zoom-bg').classList.remove('open'); }
 function info1RM(){ showInfo('Qu\u2019est-ce que le 1RM ?','Le 1RM (« one-rep max », ou répétition maximale) est le poids le plus lourd que tu pourrais soulever une seule fois sur cet exercice. Le tester en vrai étant risqué, l\'app l\'estime à partir de ton poids et de tes répétitions (formule d\'Epley : poids × (1 + reps ÷ 30)). C\'est un repère pratique pour suivre ta force globale, même quand tu changes de nombre de répétitions.'); }
 document.getElementById('info-bg').addEventListener('click',e=>{ if(e.target.id==='info-bg') closeInfo(); });
 
 /* ===== Navigation entre onglets ===== */
 function goTab(t){
+  // Onglet déjà actif et aucun écran superposé ouvert → ne rien faire
+  // (évite le "rechargement" visuel inutile de la page courante).
+  if(t===currentTab && !anyOverlayOpen()) return;
   currentTab=t;
   ['today','week','machines','settings'].forEach(x=>document.getElementById('tab-'+x).classList.toggle('active',x===t));
   closeOverlays();
