@@ -8,6 +8,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="edoWorkout">
 <meta name="theme-color" content="#0b0c0e">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <title>edoWorkout</title>
 
 <!-- Police Roboto (chargée en ligne ; repli sur la police système hors-ligne) -->
@@ -379,7 +382,6 @@
     <div class="field"><label>Résultat des séries</label>
       <div class="seg" id="f-status">
         <button data-s="success" class="ok">Réussi ✓</button>
-        <button data-s="partial" class="part">Partiel</button>
         <button data-s="fail" class="fail">Échoué ✗</button>
       </div></div>
     <div class="field"><label>Configurations <span class="muted">(max 3 · dossier, coussin…)</span></label>
@@ -402,15 +404,16 @@
     <div class="two">
       <div class="field"><label>Tour / minute <span class="muted">(facultatif)</span></label>
         <input type="text" id="f-rpm" inputmode="numeric" autocomplete="off" placeholder="ex : 60">
-        <div class="err" id="err-rpm">Nombre ≥ 0.</div></div>
+        <div class="err" id="err-rpm">Nombre ≥ 0.</div>
+        <div class="note" id="rpm-kmh" style="margin-top:5px; display:none"></div></div>
       <div class="field"><label>Distance <span class="muted">(facultatif)</span></label>
         <input type="text" id="f-dist" inputmode="decimal" autocomplete="off" placeholder="ex : 5 km">
       </div>
     </div>
   </div>
 
-  <div class="field"><label>Commentaire</label>
-    <textarea id="f-comment" placeholder="Ex : essoufflé, bonne séance, baisser le niveau la prochaine fois…"></textarea></div>
+  <div class="field"><label>Commentaires</label>
+    <textarea id="f-comment"></textarea></div>
   <button class="btn" onclick="saveExercise()">Enregistrer</button>
   <button class="btn danger" id="f-delete" style="display:none; margin-top:10px" onclick="deleteCurrent()">Supprimer cet exercice</button>
   <button class="btn ghost" style="margin-top:8px" onclick="closeForm()">Annuler</button>
@@ -457,10 +460,15 @@
    ================================================================ */
 
 /* ===== Constantes de version ===== */
-const VERSION='alpha-v1.2';
-const VERSION_DATE='24 juin 2026';
+const VERSION='alpha-v1.3';
+const VERSION_DATE='25 juin 2026';
+const DATA_VERSION=1;                                 // version du schéma de données (migrations one-shot)
 const MAX_CONFIGS=3;                                  // configs max par exercice muscu
 const CARDIO_PROGRAMS=['Manuel','Puissance','Fréquence cardiaque','Colline','Objectif +','Test de forme'];
+/* Conversion tour/minute → km/h : on suppose un "développement" moyen de
+   6 m parcourus par tour de pédale (vélo de salle). km/h = tr/min × 6 × 60 / 1000. */
+const RPM_METERS_PER_REV=6;
+function rpmToKmh(rpm){ return rpm*RPM_METERS_PER_REV*60/1000; }
 
 /* ===== Icône de l'app (PWA / écran d'accueil) ===== */
 const ICON_SVG='<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" rx="110" fill="#c5f24a"/><text x="256" y="370" font-size="340" text-anchor="middle" font-family="-apple-system,Roboto,sans-serif" font-weight="700" fill="#10130a">筋</text></svg>';
@@ -471,8 +479,8 @@ const GROUPS=['Jambes','Pectoraux','Dos','Épaules','Bras','Abdos','Cardio','Aut
 
 // Groupe par défaut selon le nom (utilisé pour migrer d'anciennes données)
 const GROUP_BY_NAME={
-  'leg press':'Jambes','leg extension':'Jambes','leg curl':'Jambes','hip abduction':'Jambes','hip adduction':'Jambes',
-  'chest press':'Pectoraux','pectoral fly':'Pectoraux','pull down':'Dos',
+  'leg press':'Jambes','leg extension':'Jambes','leg curl':'Jambes','seated leg curl':'Jambes','hip abduction':'Jambes','hip adduction':'Jambes',
+  'chest press':'Pectoraux','pectoral fly':'Pectoraux','pull down':'Dos','pulldown':'Dos','row':'Dos',
   'shoulder press':'Épaules','rear deltoid':'Épaules','biceps curl':'Bras','abdominal':'Abdos',
   'vélo elliptique':'Cardio','escaliers mécaniques':'Cardio',"vélo d'appartement":'Cardio',"vélo d'entraînement":'Cardio','rameur':'Cardio','tapis de course':'Cardio','vélo couché':'Cardio'
 };
@@ -482,6 +490,7 @@ const MACHINE_ART={
   'leg press':'<circle cx="30" cy="34" r="7"/><path d="M18 68 L30 42"/><path d="M18 68 H36"/><path d="M16 68 V56"/><path d="M34 63 L56 50"/><path d="M56 50 L66 60"/><path d="M70 44 L78 66"/><path d="M72 50 H86"/><path d="M72 58 H86"/>',
   'leg extension':'<circle cx="28" cy="34" r="7"/><path d="M22 68 V42"/><path d="M22 68 H46"/><path d="M46 66 H60"/><path d="M60 66 L78 50"/><path d="M74 46 L82 54"/>',
   'leg curl':'<circle cx="28" cy="34" r="7"/><path d="M22 64 V40"/><path d="M22 64 H46"/><path d="M46 62 H62"/><path d="M62 62 L74 74"/><path d="M70 78 L78 70"/>',
+  'seated leg curl':'<circle cx="28" cy="34" r="7"/><path d="M22 64 V40"/><path d="M22 64 H46"/><path d="M46 62 H62"/><path d="M62 62 L74 74"/><path d="M70 78 L78 70"/>',
   'hip abduction':'<circle cx="48" cy="24" r="7"/><path d="M48 31 V50"/><path d="M48 50 L32 72"/><path d="M48 50 L64 72"/><path d="M28 56 H40"/><path d="M56 56 H68"/>',
   'hip adduction':'<circle cx="48" cy="24" r="7"/><path d="M48 31 V50"/><path d="M48 50 L32 72"/><path d="M48 50 L64 72"/><path d="M28 56 H40"/><path d="M56 56 H68"/>',
   'shoulder press':'<circle cx="38" cy="44" r="7"/><path d="M38 51 V70"/><path d="M30 70 H46"/><path d="M28 70 V58"/><path d="M38 54 L28 42 L26 30"/><path d="M38 54 L48 42 L50 30"/><path d="M20 30 H32"/><path d="M44 30 H56"/>',
@@ -489,6 +498,8 @@ const MACHINE_ART={
   'chest press':'<circle cx="28" cy="40" r="7"/><path d="M28 47 V68"/><path d="M20 68 H36"/><path d="M18 68 V54"/><path d="M28 50 H48"/><path d="M48 50 V42"/><path d="M54 38 V62"/>',
   'pectoral fly':'<circle cx="48" cy="24" r="7"/><path d="M48 31 V58"/><path d="M40 70 H56"/><path d="M48 38 L34 38 L30 30"/><path d="M48 38 L62 38 L66 30"/><circle cx="28" cy="28" r="3"/><circle cx="68" cy="28" r="3"/>',
   'pull down':'<circle cx="40" cy="50" r="7"/><path d="M40 57 V72"/><path d="M32 72 H48"/><path d="M40 60 L30 46"/><path d="M40 60 L50 46"/><path d="M24 44 H56"/><path d="M40 26 V44"/>',
+  'pulldown':'<circle cx="40" cy="50" r="7"/><path d="M40 57 V72"/><path d="M32 72 H48"/><path d="M40 60 L30 46"/><path d="M40 60 L50 46"/><path d="M24 44 H56"/><path d="M40 26 V44"/>',
+  'row':'<circle cx="40" cy="50" r="7"/><path d="M40 57 V72"/><path d="M32 72 H48"/><path d="M40 60 L30 46"/><path d="M40 60 L50 46"/><path d="M24 44 H56"/><path d="M40 26 V44"/>',
   'biceps curl':'<circle cx="36" cy="26" r="7"/><path d="M36 33 V62"/><path d="M30 70 H44"/><path d="M36 44 L46 52"/><path d="M46 52 L42 36"/><path d="M37 34 H47"/><path d="M39 40 H49"/>',
   'abdominal':'<circle cx="34" cy="36" r="7"/><path d="M34 43 L44 62"/><path d="M44 62 V70"/><path d="M28 70 H50"/><path d="M26 70 V60"/><path d="M30 46 L48 54"/><path d="M30 40 L24 30"/>',
   'vélo elliptique':'<circle cx="48" cy="22" r="6"/><path d="M48 28 V50"/><path d="M48 34 L36 26"/><path d="M48 34 L60 26"/><path d="M48 50 L34 70"/><path d="M48 50 L62 70"/><ellipse cx="48" cy="78" rx="26" ry="6"/>',
@@ -517,10 +528,14 @@ const MACHINE_PHOTO={
   'vélo elliptique':'https://shop.lifefitness.com/cdn/shop/files/E1-Crosstrainer-TrackConnect-console-standardview.jpg?v=1748945392&width=500',
   'tapis de course':'https://shop.lifefitness.com/cdn/shop/files/F3-Treadmill-Track_Connect-console-StandardView.jpg?v=1748945393&width=500',
   'pectoral fly':'https://shop.lifefitness.com/cdn/shop/files/axiom-life-fitness-pectoralfly-reardealt-platinum-black-1000x1000.jpg?v=1748945227&width=500',
+  'rear deltoid':'https://shop.lifefitness.com/cdn/shop/files/axiom-life-fitness-pectoralfly-reardealt-platinum-black-1000x1000.jpg?v=1748945227&width=500',
   'abdominal':'https://shop.lifefitness.com/cdn/shop/files/axiom-life-fitness-abdominal-back-extension-platinum-black-1000x1000.jpg?v=1748945229&width=500',
   'hip abduction':'https://shop.lifefitness.com/cdn/shop/files/axiom-life-fitness-abductor-adductor-charcoal-black-1000x1000.jpg?v=1748945228&width=800',
+  'hip adduction':'https://shop.lifefitness.com/cdn/shop/files/axiom-life-fitness-abductor-adductor-charcoal-black-1000x1000.jpg?v=1748945228&width=800',
   'chest press':'https://shop.lifefitness.com/cdn/shop/files/CI-MP_Cybex_Ion_Multi-Press-charcoal-black-1000x1000.jpg?v=1748945222&width=800',
   'leg curl':'https://shop.lifefitness.com/cdn/shop/files/axiom-leg-curl-charcoal-black_1000x1000_a2eabf9b-7f98-45e3-81f5-d65a9974d475.jpg?v=1748945224&width=800',
+  'leg extension':'https://shop.lifefitness.com/cdn/shop/files/axiom-leg-curl-charcoal-black_1000x1000_a2eabf9b-7f98-45e3-81f5-d65a9974d475.jpg?v=1748945224&width=800',
+  'seated leg curl':'https://shop.lifefitness.com/cdn/shop/files/axiom-leg-curl-charcoal-black_1000x1000_a2eabf9b-7f98-45e3-81f5-d65a9974d475.jpg?v=1748945224&width=800',
   "vélo d'entraînement":'https://shop.lifefitness.com/cdn/shop/products/C1-Upright-Go-L_056393d2-4eb8-46c5-869f-9a5740237931.jpg?v=1748945387&width=800',
   'vélo couché':'https://shop.lifefitness.com/cdn/shop/products/RS1-Recumbent-Go-L_0f9f29ba-8242-4e6e-9cad-0adc5794b2dc.jpg?v=1748945384&width=800'
 };
@@ -558,9 +573,10 @@ function machineHeroHTML(m){
 const STORE='edoworkout';
 const DEFAULT_MACHINES=[
   {name:'Leg press',group:'Jambes',type:'strength'},{name:'Leg extension',group:'Jambes',type:'strength'},
-  {name:'Leg curl',group:'Jambes',type:'strength'},{name:'Hip abduction',group:'Jambes',type:'strength'},
+  {name:'Seated leg curl',group:'Jambes',type:'strength'},
+  {name:'Hip abduction (intérieur)',group:'Jambes',type:'strength'},{name:'Hip adduction (extérieur)',group:'Jambes',type:'strength'},
   {name:'Chest press (poignée vers l\'avant)',group:'Pectoraux',type:'strength'},{name:'Pectoral fly',group:'Pectoraux',type:'strength'},
-  {name:'Pull down',group:'Dos',type:'strength'},
+  {name:'Pulldown',group:'Dos',type:'strength'},{name:'Row',group:'Dos',type:'strength'},
   {name:'Shoulder press',group:'Épaules',type:'strength'},{name:'Rear deltoid',group:'Épaules',type:'strength'},
   {name:'Biceps curl',group:'Bras',type:'strength'},
   {name:'Abdominal',group:'Abdos',type:'strength'},
@@ -576,11 +592,13 @@ function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(
 
 /** Complète/corrige l'état chargé (valeurs par défaut, migrations légères). */
 function normalize(){
+  let fresh=false;
   if(!state.machines||!state.machines.length){
     state.machines=DEFAULT_MACHINES.map(m=>({id:uid(),name:m.name,group:m.group,type:m.type}));
+    fresh=true;                                        // nouvelle installation : noms déjà à jour
   }
   state.machines.forEach(m=>{
-    if((m.name||'').trim().toLowerCase()==='hip adduction') m.name='Hip abduction'; // correction de nom
+    // Renommages idempotents (sûrs à rejouer) pour les montées de version directes
     if((m.name||'').trim().toLowerCase()==='chest press') m.name='Chest press (poignée vers l\'avant)'; // précision poignée
     if((m.name||'').trim().toLowerCase()==="vélo d'appartement") m.name="Vélo d'entraînement"; // renommage v1.2
     if(!m.type) m.type='strength';
@@ -591,6 +609,46 @@ function normalize(){
   state.settings.restSeconds=Math.max(15,Math.min(300,state.settings.restSeconds||60));
   if(state.settings.restPos!=='left' && state.settings.restPos!=='right') state.settings.restPos='right'; // bulle à droite par défaut
   if(!state.exercises) state.exercises=[];
+  // Migrations de DONNÉES versionnées (échanges/renommages NON idempotents) — jouées une seule fois.
+  if(fresh) state.settings.dataVersion=DATA_VERSION;   // rien à migrer sur une installation neuve
+  else runMigrations();
+}
+
+/** Trouve une machine par nom exact (insensible à la casse). */
+function machineByName(n){ const k=(n||'').trim().toLowerCase(); return state.machines.find(m=>(m.name||'').trim().toLowerCase()===k); }
+
+/** Applique les migrations de données nécessaires selon dataVersion.
+    IMPORTANT : ne touche jamais aux exercices (liés par id) ; ne fait que
+    renommer/échanger des noms de machines et en créer de nouvelles. */
+function runMigrations(){
+  let v=Number(state.settings.dataVersion)||0;
+  if(v<1){ migrateV1(); }
+  state.settings.dataVersion=DATA_VERSION;
+}
+
+/** Migration v1 (app alpha-v1.3) : corrections de libellés des machines.
+    Les exercices restent attachés à leur machine d'origine (par id). */
+function migrateV1(){
+  // 1) Échanger Leg curl ⇄ Leg extension, puis renommer "Leg curl" → "Seated leg curl"
+  const lc=machineByName('Leg curl'), le=machineByName('Leg extension');
+  if(lc&&le){ const t=lc.name; lc.name=le.name; le.name=t; }
+  const nLc=machineByName('Leg curl'); if(nLc) nLc.name='Seated leg curl';
+
+  // 2) Hip : créer "Hip adduction", échanger les noms avec "Hip abduction",
+  //    puis préciser "(extérieur)" / "(intérieur)".
+  if(machineByName('Hip abduction') && !machineByName('Hip adduction')){
+    state.machines.push({id:uid(),name:'Hip adduction',group:'Jambes',type:'strength'});
+    const a=machineByName('Hip abduction'), b=machineByName('Hip adduction');
+    if(a&&b){ const t=a.name; a.name=b.name; b.name=t; }
+    const add=machineByName('Hip adduction'); if(add) add.name='Hip adduction (extérieur)';
+    const abd=machineByName('Hip abduction'); if(abd) abd.name='Hip abduction (intérieur)';
+  }
+
+  // 3) Créer "Row" si absente (même groupe que Pulldown)
+  if(!machineByName('Row')) state.machines.push({id:uid(),name:'Row',group:'Dos',type:'strength'});
+
+  // 4) "Pull down" → "Pulldown"
+  const pd=machineByName('Pull down'); if(pd) pd.name='Pulldown';
 }
 
 /** Lit l'état depuis localStorage (avec migration des anciennes clés). */
@@ -808,7 +866,7 @@ function renderToday(){
     ? items.map(exerciseCard).join('')
     : `<div class="card"><div class="empty">Pas encore d'exercice aujourd'hui.<br>Appuie sur « ＋ Nouvel exercice » pour démarrer ta séance 💪</div></div>`;
   setView(`<h1>Aujourd'hui</h1><p class="sub">${fmtDateFull(t)}</p>
-    ${hasPast?`<button class="btn ghost" style="margin-top:12px" onclick="repeatLastSession()">↻ Répéter la dernière séance</button>`:''}
+    ${(items.length===0 && hasPast)?`<button class="btn ghost" style="margin-top:12px" onclick="repeatLastSession()">↻ Répéter la dernière séance</button>`:''}
     ${items.length?`<div class="dayhead" style="margin-top:18px"><span class="d">Séance du jour</span><span class="c">${items.length} exercice${items.length>1?'s':''}</span></div>`:'<div style="height:14px"></div>'}
     ${body}<div style="height:80px"></div>`);
 }
@@ -959,7 +1017,7 @@ function openMachine(id){
     ${machineHeroHTML(m)}
     <h1>${esc(m.name)}</h1><p class="sub">${cardio?'Cardio':esc(m.group||'Autre')} · ${ss.length} ${cardio?'séance':'exercice'}${ss.length>1?'s':''}</p>
     <div class="row" style="gap:10px;margin:14px 0 4px">
-      <button class="btn sm" style="flex:1" onclick="openForm({machineId:'${id}'})">＋ ${cardio?'Nouvelle séance':'Nouvel exercice'}</button>${repeatBtn}
+      <button class="btn sm" style="flex:1" onclick="openForm({machineId:'${id}'})">＋ Nouvel exercice</button>${repeatBtn}
     </div>${chart}${records}${body}`;
   initCharts(document.getElementById('screen-machine-inner'));
   screen.scrollTop=0;                                 // afficher le haut de l'écran
@@ -1081,6 +1139,14 @@ function cloneForToday(x){
     return {id:uid(),date:todayISO(),machineId:x.machineId,programme:x.programme,niveau:x.niveau,duree:x.duree,rpm:x.rpm??'',distance:x.distance??'',comment:''};
   return {id:uid(),date:todayISO(),machineId:x.machineId,weight:x.weight,sets:x.sets,reps:x.reps,status:'success',configs:(x.configs||[]).slice(0,MAX_CONFIGS),comment:''};
 }
+/** Variante "Répéter" depuis la fiche machine : ne reprend QUE les champs
+    obligatoires, laisse vides les champs facultatifs (tr/min, distance, configs)
+    qui changent souvent d'un exercice à l'autre. */
+function cloneMandatory(x){
+  if(isCardioMachine(x.machineId))
+    return {id:uid(),date:todayISO(),machineId:x.machineId,programme:x.programme,niveau:x.niveau,duree:x.duree,rpm:'',distance:'',comment:''};
+  return {id:uid(),date:todayISO(),machineId:x.machineId,weight:x.weight,sets:x.sets,reps:x.reps,status:'success',configs:[],comment:''};
+}
 function repeatLastSession(){
   const days=[...new Set(state.exercises.map(x=>x.date))].filter(d=>d<todayISO()).sort();
   const past=days.pop();
@@ -1097,7 +1163,7 @@ function repeatLastSession(){
 function repeatLastForMachine(id){
   const x=lastForMachine(id);
   if(!x){ toast('Aucun exercice à répéter'); return; }
-  state.exercises.push(cloneForToday(x));
+  state.exercises.push(cloneMandatory(x));            // champs facultatifs laissés vides
   save(); openMachine(id); toast('Exercice répété ✓');
 }
 
@@ -1233,6 +1299,17 @@ function setStatus(s){ curStatus=s; document.querySelectorAll('#f-status button'
 document.querySelectorAll('#f-status button').forEach(b=>b.addEventListener('click',()=>setStatus(b.dataset.s)));
 // Remplit la liste des programmes cardio une fois pour toutes
 document.getElementById('f-prog').innerHTML=CARDIO_PROGRAMS.map(p=>`<option value="${p}">${p}</option>`).join('');
+// Affiche l'équivalent en km/h sous le champ "Tour / minute" (s'il est rempli)
+function updateRpmKmh(){
+  const el=document.getElementById('rpm-kmh');
+  const raw=document.getElementById('f-rpm').value.trim().replace(',','.');
+  if(raw!=='' && /^\d*\.?\d+$/.test(raw)){
+    const kmh=rpmToKmh(Number(raw));
+    el.textContent='≈ '+kmh.toLocaleString('fr-CH',{maximumFractionDigits:1})+' km/h';
+    el.style.display='block';
+  } else { el.textContent=''; el.style.display='none'; }
+}
+document.getElementById('f-rpm').addEventListener('input',updateRpmKmh);
 // Changement de machine → bascule muscu/cardio + pré-remplissage
 document.getElementById('f-machine').addEventListener('change',()=>{
   const id=document.getElementById('f-machine').value;
@@ -1275,6 +1352,7 @@ function prefillFromLast(id){
       document.getElementById('f-rpm').value=x.rpm??''; document.getElementById('f-dist').value=x.distance??''; }
     else  { document.getElementById('f-prog').value='Manuel'; document.getElementById('f-level').value=''; document.getElementById('f-dur').value=30;
       document.getElementById('f-rpm').value=''; document.getElementById('f-dist').value=''; }
+    updateRpmKmh();
   } else {
     if(x){
       document.getElementById('f-weight').value=x.weight; document.getElementById('f-sets').value=x.sets; document.getElementById('f-reps').value=x.reps;
@@ -1301,6 +1379,7 @@ function openForm(opts){
     if(cardio){
       document.getElementById('f-prog').value=x.programme||'Manuel'; document.getElementById('f-level').value=x.niveau??''; document.getElementById('f-dur').value=x.duree??30;
       document.getElementById('f-rpm').value=x.rpm??''; document.getElementById('f-dist').value=x.distance??'';
+      updateRpmKmh();
     } else {
       document.getElementById('f-weight').value=x.weight; document.getElementById('f-sets').value=x.sets; document.getElementById('f-reps').value=x.reps;
       setStatus(x.status||'success'); clearConfigs(); (x.configs||[]).slice(0,MAX_CONFIGS).forEach(c=>addConfigRow(c));
@@ -1485,18 +1564,8 @@ function toast(msg){
   clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2100);
 }
 
-/* ===== PWA : manifest + icône + service worker ===== */
+/* ===== PWA : service worker (manifest + icônes sont des fichiers statiques) ===== */
 function setupPWA(){
-  try{
-    // Icône écran d'accueil (iOS)
-    const icon=document.createElement('link'); icon.rel='apple-touch-icon'; icon.href=ICON_URL; document.head.appendChild(icon);
-    // Manifest généré à la volée (Blob)
-    const m={name:'edoWorkout',short_name:'edoWorkout',start_url:'.',scope:'.',display:'standalone',orientation:'portrait',
-      background_color:'#0b0c0e',theme_color:'#0b0c0e',
-      icons:[{src:ICON_URL,sizes:'192x192',type:'image/svg+xml',purpose:'any'},{src:ICON_URL,sizes:'512x512',type:'image/svg+xml',purpose:'any maskable'}]};
-    const ml=document.createElement('link'); ml.rel='manifest';
-    ml.href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/manifest+json'})); document.head.appendChild(ml);
-  }catch(e){}
   // Service worker : actif uniquement si hébergé en http(s) avec un sw.js à côté
   try{ if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){ navigator.serviceWorker.register('sw.js').catch(()=>{}); } }catch(e){}
 }
