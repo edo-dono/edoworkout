@@ -2,7 +2,8 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="screen-orientation" content="portrait">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -172,6 +173,16 @@
   .cmt{margin-top:10px; font-size:14px; color:#d4d4d9; line-height:1.4; background:rgba(255,255,255,.05); border-radius:10px; padding:9px 11px;}
   .empty{text-align:center; color:var(--muted); padding:28px 12px; font-size:14px; line-height:1.5;}
 
+  /* ---- En-tête d'une carte d'exercice : numéro d'ordre + flèches de tri ---- */
+  .exohead{display:flex; align-items:center; justify-content:space-between; margin-bottom:9px;}
+  .exo-num{display:inline-flex; align-items:center; font-size:11px; font-weight:700; letter-spacing:.3px;
+    color:var(--accent); background:var(--accent-dim); border:1px solid rgba(197,242,74,.28); padding:3px 10px; border-radius:20px;}
+  .reorder{display:flex; gap:6px;}
+  .reorder button{width:32px; height:27px; border-radius:9px; background:rgba(255,255,255,.06); border:1px solid var(--hair);
+    color:var(--text); font-size:11px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;}
+  .reorder button:disabled{opacity:.3;}
+  .reorder button:active{transform:scale(.9);}
+
   /* ---- Bloc de progression (courbes) + records ---- */
   .metric{margin-bottom:16px;} .metric:last-child{margin-bottom:0;}
   .metric .mh{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px;}
@@ -312,12 +323,34 @@
     border:1px solid var(--hi); border-radius:22px; padding:22px; max-width:340px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,.55);}
   .modal p{font-size:16px; line-height:1.45; margin:0 0 18px; font-weight:500;}
   .modal .btn.ghost{margin-top:9px;}
+
+  /* ---- Bandeau "mise à jour disponible" (sticky sous l'en-tête) ---- */
+  .updatebar{position:sticky; top:calc(var(--safe-top) + 52px); z-index:34; display:none; align-items:center; justify-content:space-between; gap:10px;
+    max-width:560px; margin:8px auto 0; padding:10px 14px; border-radius:14px;
+    background:var(--accent-dim); border:1px solid rgba(197,242,74,.4); color:var(--text); font-size:14px; font-weight:600;}
+  .updatebar.show{display:flex;}
+  .updatebar button{background:var(--accent); color:#10130a; border:none; border-radius:10px; padding:8px 14px; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap;}
+  .updatebar button:active{transform:scale(.96);}
+
+  /* ---- Mode paysage : invite à pivoter (l'app est pensée en portrait) ---- */
+  .rotate-lock{position:fixed; inset:0; z-index:200; display:none; flex-direction:column; align-items:center; justify-content:center; gap:16px;
+    background:var(--bg); color:var(--text); text-align:center; padding:30px;}
+  .rotate-lock .ico{font-size:46px; animation:rotHint 2s ease-in-out infinite;}
+  .rotate-lock p{font-size:16px; font-weight:600; max-width:280px; line-height:1.4;}
+  @keyframes rotHint{0%,100%{transform:rotate(0)} 50%{transform:rotate(-90deg)}}
+  @media (orientation:landscape) and (max-height:520px){ .rotate-lock{display:flex;} }
 </style>
 </head>
 <body>
 
 <!-- En-tête : titre centré -->
 <header class="appbar"><div class="inner"><span class="brand"><span class="kanji">筋</span>edo<b style="color:var(--accent)">Workout</b></span></div></header>
+
+<!-- Bandeau de mise à jour (affiché quand une nouvelle version est en cache) -->
+<div class="updatebar" id="updatebar">
+  <span>Nouvelle mise à jour disponible !</span>
+  <button onclick="applyUpdate()">Mettre à jour</button>
+</div>
 
 <!-- Conteneur où chaque onglet est rendu -->
 <div id="app"></div>
@@ -337,9 +370,8 @@
   <div class="restprog"><div id="rest-fill"></div></div>
 </div>
 
-<!-- Écrans superposés -->
+<!-- Écran superposé : détail d'une machine -->
 <div class="screen" id="screen-machine"><div class="inner" id="screen-machine-inner"></div></div>
-<div class="screen" id="screen-medit"><div class="inner" id="screen-medit-inner"></div></div>
 
 <!-- Champ caché pour l'import de sauvegarde -->
 <input type="file" id="import-file" accept=".json,application/json" style="display:none">
@@ -363,6 +395,7 @@
   <!-- Barre du haut : bouton retour (annule l'ajout/la modification) -->
   <div class="navbar" style="margin-bottom:4px"><button class="back" onclick="closeForm()">‹ Retour</button></div>
   <h3 id="sheet-title">Nouvel exercice</h3>
+  <div class="field" id="date-edit"><label>Date de la séance</label><input type="date" id="f-date"></div>
   <div class="field" id="date-readonly" style="display:none"><label>Séance</label><div class="readonly" id="f-date-label"></div></div>
   <div class="field"><label>Machine</label><select id="f-machine"></select></div>
 
@@ -410,6 +443,17 @@
         <input type="text" id="f-dist" inputmode="decimal" autocomplete="off" placeholder="ex : 5 km">
       </div>
     </div>
+    <!-- Champs spécifiques au TAPIS DE COURSE uniquement -->
+    <div id="fields-treadmill" style="display:none">
+      <div class="two">
+        <div class="field"><label>Inclinaison (%) <span class="muted">(facultatif)</span></label>
+          <input type="text" id="f-incline" inputmode="decimal" autocomplete="off" placeholder="ex : 3">
+          <div class="err" id="err-incline">Nombre ≥ 0.</div></div>
+        <div class="field"><label>Vitesse (km/h) <span class="muted">(facultatif)</span></label>
+          <input type="text" id="f-speed" inputmode="decimal" autocomplete="off" placeholder="ex : 9">
+          <div class="err" id="err-speed">Nombre ≥ 0.</div></div>
+      </div>
+    </div>
   </div>
 
   <div class="field"><label>Commentaires</label>
@@ -442,6 +486,12 @@
   <img id="zoom-img" src="" alt="Photo de la machine">
 </div>
 
+<!-- Invite à repasser en portrait (l'app est conçue verticale) -->
+<div class="rotate-lock" id="rotate-lock">
+  <div class="ico">📱</div>
+  <p>edoWorkout s'utilise en mode portrait.<br>Pivote ton téléphone à la verticale.</p>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -460,9 +510,9 @@
    ================================================================ */
 
 /* ===== Constantes de version ===== */
-const VERSION='alpha-v1.3';
-const VERSION_DATE='25 juin 2026';
-const DATA_VERSION=1;                                 // version du schéma de données (migrations one-shot)
+const VERSION='alpha-v1.4';
+const VERSION_DATE='27 juin 2026';
+const DATA_VERSION=2;                                 // version du schéma de données (migrations one-shot)
 const MAX_CONFIGS=3;                                  // configs max par exercice muscu
 const CARDIO_PROGRAMS=['Manuel','Puissance','Fréquence cardiaque','Colline','Objectif +','Test de forme'];
 /* Conversion tour/minute → km/h : on suppose un "développement" moyen de
@@ -522,22 +572,23 @@ function machineArt(name){
   return `<svg viewBox="0 0 96 96" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
 }
 
-/* ===== Photos des machines (URLs externes ; repli sur le tracé SVG hors-ligne) =====
-   Clé = nom en minuscules (la précision entre parenthèses est ignorée à la recherche). */
+/* ===== Photos des machines (hébergées dans le dossier ./photos du dépôt ;
+   repli automatique sur le tracé SVG si l'image est absente / hors-ligne).
+   Clé = nom en minuscules (la précision entre parenthèses est ignorée). ===== */
 const MACHINE_PHOTO={
-  'vélo elliptique':'https://shop.lifefitness.com/cdn/shop/files/E1-Crosstrainer-TrackConnect-console-standardview.jpg?v=1748945392&width=500',
-  'tapis de course':'https://shop.lifefitness.com/cdn/shop/files/F3-Treadmill-Track_Connect-console-StandardView.jpg?v=1748945393&width=500',
-  'pectoral fly':'https://shop.lifefitness.com/cdn/shop/files/axiom-life-fitness-pectoralfly-reardealt-platinum-black-1000x1000.jpg?v=1748945227&width=500',
-  'rear deltoid':'https://shop.lifefitness.com/cdn/shop/files/axiom-life-fitness-pectoralfly-reardealt-platinum-black-1000x1000.jpg?v=1748945227&width=500',
-  'abdominal':'https://shop.lifefitness.com/cdn/shop/files/axiom-life-fitness-abdominal-back-extension-platinum-black-1000x1000.jpg?v=1748945229&width=500',
-  'hip abduction':'https://shop.lifefitness.com/cdn/shop/files/axiom-life-fitness-abductor-adductor-charcoal-black-1000x1000.jpg?v=1748945228&width=800',
-  'hip adduction':'https://shop.lifefitness.com/cdn/shop/files/axiom-life-fitness-abductor-adductor-charcoal-black-1000x1000.jpg?v=1748945228&width=800',
-  'chest press':'https://shop.lifefitness.com/cdn/shop/files/CI-MP_Cybex_Ion_Multi-Press-charcoal-black-1000x1000.jpg?v=1748945222&width=800',
-  'leg curl':'https://shop.lifefitness.com/cdn/shop/files/axiom-leg-curl-charcoal-black_1000x1000_a2eabf9b-7f98-45e3-81f5-d65a9974d475.jpg?v=1748945224&width=800',
-  'leg extension':'https://shop.lifefitness.com/cdn/shop/files/axiom-leg-curl-charcoal-black_1000x1000_a2eabf9b-7f98-45e3-81f5-d65a9974d475.jpg?v=1748945224&width=800',
-  'seated leg curl':'https://shop.lifefitness.com/cdn/shop/files/axiom-leg-curl-charcoal-black_1000x1000_a2eabf9b-7f98-45e3-81f5-d65a9974d475.jpg?v=1748945224&width=800',
-  "vélo d'entraînement":'https://shop.lifefitness.com/cdn/shop/products/C1-Upright-Go-L_056393d2-4eb8-46c5-869f-9a5740237931.jpg?v=1748945387&width=800',
-  'vélo couché':'https://shop.lifefitness.com/cdn/shop/products/RS1-Recumbent-Go-L_0f9f29ba-8242-4e6e-9cad-0adc5794b2dc.jpg?v=1748945384&width=800'
+  'vélo elliptique':'photos/velo-elliptique.jpg',
+  'tapis de course':'photos/tapis-de-course.jpg',
+  'pectoral fly':'photos/pectoral-fly.jpg',
+  'rear deltoid':'photos/pectoral-fly.jpg',
+  'abdominal':'photos/abdominal.jpg',
+  'hip abduction':'photos/hip-abduction.jpg',
+  'hip adduction':'photos/hip-abduction.jpg',
+  'chest press':'photos/chest-press.jpg',
+  'leg curl':'photos/leg.jpg',
+  'leg extension':'photos/leg.jpg',
+  'seated leg curl':'photos/leg.jpg',
+  "vélo d'entraînement":'photos/velo-entrainement.jpg',
+  'vélo couché':'photos/velo-couche.jpg'
 };
 /** Renvoie l'URL de la photo d'une machine (ou null), avec repli sur le nom sans parenthèses. */
 function machinePhotoURL(name){
@@ -623,6 +674,7 @@ function machineByName(n){ const k=(n||'').trim().toLowerCase(); return state.ma
 function runMigrations(){
   let v=Number(state.settings.dataVersion)||0;
   if(v<1){ migrateV1(); }
+  if(v<2){ migrateV2(); }
   state.settings.dataVersion=DATA_VERSION;
 }
 
@@ -649,6 +701,18 @@ function migrateV1(){
 
   // 4) "Pull down" → "Pulldown"
   const pd=machineByName('Pull down'); if(pd) pd.name='Pulldown';
+}
+
+/** Migration v2 (app alpha-v1.4) : attribue un ordre aux exercices existants.
+    Au sein de chaque journée, l'ordre suit l'ordre de création (id croissant),
+    soit l'ordre chronologique réel des exercices. N'altère aucune autre donnée. */
+function migrateV2(){
+  const byDay={};
+  state.exercises.forEach(x=>{ (byDay[x.date]=byDay[x.date]||[]).push(x); });
+  Object.values(byDay).forEach(list=>{
+    list.sort((a,b)=>String(a.id).localeCompare(String(b.id)));   // chronologique
+    list.forEach((x,i)=>{ if(typeof x.order!=='number') x.order=i; });
+  });
 }
 
 /** Lit l'état depuis localStorage (avec migration des anciennes clés). */
@@ -713,6 +777,8 @@ function machine(id){ return state.machines.find(m=>m.id===id); }
 function machineName(id){ const m=machine(id); return m?m.name:'(machine supprimée)'; }
 function machineGroup(id){ const m=machine(id); return (m&&m.group)||'Autre'; }
 function isCardioMachine(id){ const m=machine(id); return !!(m&&m.type==='cardio'); }
+/** La machine est-elle le tapis de course ? (champs inclinaison/vitesse spécifiques) */
+function isTreadmill(id){ const m=machine(id); return !!(m && (m.name||'').trim().toLowerCase().replace(/\s*\(.*\)\s*$/,'')==='tapis de course'); }
 function esc(t){ return (t||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
 /** Jours (dates) où au moins un exercice a été fait dans la semaine donnée. */
@@ -726,12 +792,30 @@ function gymDays(weekStart){
 function groupByDate(list){
   const m={};
   list.forEach(x=>{ (m[x.date]=m[x.date]||[]).push(x); });
-  // Dates décroissantes, et à l'intérieur d'un jour : ordre de création décroissant
-  // (id basé sur l'horodatage → le plus récent d'abord).
+  // Dates décroissantes ; à l'intérieur d'un jour : ordre EXPLICITE croissant
+  // (champ `order`, modifiable par l'utilisateur), repli sur l'id.
   return Object.keys(m).sort((a,b)=>b.localeCompare(a)).map(d=>({
     date:d,
-    items:m[d].slice().sort((a,b)=>String(b.id).localeCompare(String(a.id)))
+    items:m[d].slice().sort(byOrder)
   }));
+}
+/** Comparateur d'ordre d'exercices au sein d'une journée. */
+function byOrder(a,b){ return (a.order??0)-(b.order??0) || String(a.id).localeCompare(String(b.id)); }
+/** Exercices d'une journée, triés dans l'ordre d'affichage. */
+function dayItems(date){ return state.exercises.filter(x=>x.date===date).sort(byOrder); }
+/** Prochain numéro d'ordre disponible pour une journée. */
+function nextOrder(date){ const l=state.exercises.filter(x=>x.date===date); return l.length?Math.max(...l.map(x=>x.order??0))+1:0; }
+/** Position (1..N) et total d'un exercice dans sa séance (journée). */
+function dayPosition(x){ const l=dayItems(x.date); return {pos:l.findIndex(e=>e.id===x.id)+1, total:l.length}; }
+/** Déplace un exercice dans sa séance (dir = -1 monter / +1 descendre). */
+function moveExercise(id,dir){
+  const x=state.exercises.find(e=>e.id===id); if(!x) return;
+  const l=dayItems(x.date); const i=l.findIndex(e=>e.id===id); const j=i+dir;
+  if(j<0||j>=l.length) return;
+  l.splice(i,1); l.splice(j,0,x);              // réordonne le tableau
+  l.forEach((e,k)=>e.order=k);                 // réécrit des ordres séquentiels propres
+  save();
+  if(document.getElementById('screen-machine').classList.contains('open')) openMachine(x.machineId); else render();
 }
 function statusLabel(s){ return s==='success'?'Réussi':s==='partial'?'Partiel':'Échoué'; }
 function statusBadge(s){ return s==='success'?'<span class="badge b-ok">Réussi</span>':s==='partial'?'<span class="badge b-part">Partiel</span>':'<span class="badge b-fail">Échoué</span>'; }
@@ -745,6 +829,13 @@ function weekGroupCounts(){
   const c={};
   state.exercises.forEach(x=>{ if(x.date>=a&&x.date<=b){ const g=machineGroup(x.machineId); c[g]=(c[g]||0)+1; } });
   return c;
+}
+/** Volume total de musculation (poids × séries × répétitions) sur la semaine en cours. */
+function weekVolume(){
+  const ws=startOfWeek(new Date()), a=isoDate(ws), e=new Date(ws); e.setDate(e.getDate()+6); const b=isoDate(e);
+  let v=0;
+  state.exercises.forEach(x=>{ if(x.date>=a&&x.date<=b && !isCardioMachine(x.machineId)) v+=Number(x.weight)*Number(x.sets)*Number(x.reps); });
+  return Math.round(v);
 }
 
 /* ===== Courbe interactive (sparkline + repère au toucher) ===== */
@@ -791,6 +882,15 @@ function metricBlock(title,values,dates,unit,color){
   const last=values[values.length-1],min=Math.min(...values),max=Math.max(...values);
   return `<div class="metric"><div class="mh"><span class="mt">${title}</span><span class="mv">${last}${unit} <small>· min ${min} / max ${max}</small></span></div>${chartHTML(values,dates,color,unit)}</div>`;
 }
+/** Extrait un nombre d'une valeur (gère le texte libre comme "5,2 km"). */
+function numVal(v){ if(v===''||v==null) return null; const m=String(v).replace(',','.').match(/-?\d+(\.\d+)?/); return m?Number(m[0]):null; }
+/** Construit un bloc-métrique pour un champ FACULTATIF : n'affiche la courbe
+    que si au moins 2 séances renseignent la valeur. */
+function optMetric(title,chron,getter,unit,color){
+  const pts=chron.map(x=>({d:x.date,v:numVal(getter(x))})).filter(p=>p.v!=null);
+  if(pts.length<2) return '';
+  return metricBlock(title,pts.map(p=>p.v),pts.map(p=>p.d),unit,color);
+}
 
 /* ===== Rendu des onglets ===== */
 let currentTab='today';
@@ -805,8 +905,8 @@ function setView(html){
   window.scrollTo(0,0);                               // toujours afficher le haut de la page
   document.documentElement.scrollTop=0;
 }
-function anyOverlayOpen(){ return document.getElementById('screen-machine').classList.contains('open')||document.getElementById('screen-medit').classList.contains('open'); }
-function closeOverlays(){ document.getElementById('screen-machine').classList.remove('open'); document.getElementById('screen-medit').classList.remove('open'); }
+function anyOverlayOpen(){ return document.getElementById('screen-machine').classList.contains('open'); }
+function closeOverlays(){ document.getElementById('screen-machine').classList.remove('open'); }
 
 /** Affiche/masque les boutons flottants (visibles seulement sur "Aujourd'hui",
     hors écran superposé, et pas pendant le repos). */
@@ -832,14 +932,26 @@ function render(){
 }
 
 /** Carte d'un exercice (rendu différent muscu / cardio). */
-function exerciseCard(x){
+function exerciseCard(x,opts){
+  opts=opts||{};
+  const {pos,total}=dayPosition(x);
+  const showReorder = opts.reorder && total>1;
+  const head=`<div class="exohead">
+    <span class="exo-num">Exo ${pos}/${total}</span>
+    ${showReorder?`<span class="reorder">
+      <button onclick="event.stopPropagation();moveExercise('${x.id}',-1)" ${pos<=1?'disabled':''} aria-label="Monter">▲</button>
+      <button onclick="event.stopPropagation();moveExercise('${x.id}',1)" ${pos>=total?'disabled':''} aria-label="Descendre">▼</button>
+    </span>`:''}
+  </div>`;
   // --- Cardio ---
   if(isCardioMachine(x.machineId)){
     // Tags facultatifs (n'apparaissent que s'ils sont renseignés)
     const extra=[];
     if(x.rpm!==''&&x.rpm!=null) extra.push(`<span class="tag"><b>Tr/min</b> · ${esc(String(x.rpm))}</span>`);
     if(x.distance!==''&&x.distance!=null) extra.push(`<span class="tag"><b>Distance</b> · ${esc(String(x.distance))}</span>`);
-    return `<div class="card ex" onclick="editExercise('${x.id}')">
+    if(x.incline!==''&&x.incline!=null) extra.push(`<span class="tag"><b>Inclinaison</b> · ${esc(String(x.incline))} %</span>`);
+    if(x.speed!==''&&x.speed!=null) extra.push(`<span class="tag"><b>Vitesse</b> · ${esc(String(x.speed))} km/h</span>`);
+    return `<div class="card ex" onclick="editExercise('${x.id}')">${head}
       <div class="top"><div class="nm">${esc(machineName(x.machineId))}</div><span class="badge b-cardio">Cardio</span></div>
       <div class="row between"><div class="big">${x.duree} min <small>·</small> Niv. ${x.niveau} <small>·</small> ${esc(x.programme||'')}</div></div>
       ${extra.length?`<div class="tags">${extra.join('')}</div>`:''}
@@ -850,7 +962,7 @@ function exerciseCard(x){
   const isPR = max!=null && machineCount(x.machineId)>=2 && Number(x.weight)===max && Number(x.weight)>0;
   const configs=(x.configs||[]).map((c,i)=>`<span class="tag"><b>Config ${i+1}</b> · ${esc(c)}</span>`).join('');
   const w=(x.weight!==''&&x.weight!=null)?x.weight+' kg':'';
-  return `<div class="card ex" onclick="editExercise('${x.id}')">
+  return `<div class="card ex" onclick="editExercise('${x.id}')">${head}
     <div class="top"><div class="nm">${esc(machineName(x.machineId))}</div>${statusBadge(x.status)}</div>
     <div class="row between"><div class="big">${x.sets} × ${x.reps} <small>rép</small>${w?' · '+w:''}${isPR?'<span class="pr">🏆 record</span>':''}</div></div>
     ${configs?`<div class="tags">${configs}</div>`:''}${x.comment?`<div class="cmt">${esc(x.comment)}</div>`:''}</div>`;
@@ -859,11 +971,11 @@ function exerciseCard(x){
 /** Onglet "Aujourd'hui" : séance du jour + bouton "Répéter la dernière séance". */
 function renderToday(){
   const t=todayISO();
-  // Plus récemment créé d'abord (id horodaté décroissant)
-  const items=state.exercises.filter(x=>x.date===t).sort((a,b)=>String(b.id).localeCompare(String(a.id)));
+  // Ordre explicite de la séance (modifiable via les flèches)
+  const items=dayItems(t);
   const hasPast=state.exercises.some(x=>x.date<t);
   const body=items.length
-    ? items.map(exerciseCard).join('')
+    ? items.map(x=>exerciseCard(x,{reorder:true})).join('')
     : `<div class="card"><div class="empty">Pas encore d'exercice aujourd'hui.<br>Appuie sur « ＋ Nouvel exercice » pour démarrer ta séance 💪</div></div>`;
   setView(`<h1>Aujourd'hui</h1><p class="sub">${fmtDateFull(t)}</p>
     ${(items.length===0 && hasPast)?`<button class="btn ghost" style="margin-top:12px" onclick="repeatLastSession()">↻ Répéter la dernière séance</button>`:''}
@@ -909,7 +1021,7 @@ function renderWeek(){
   // Séances récentes (3 derniers jours d'entraînement)
   const recent=groupByDate([...state.exercises].sort((a,b)=>b.date.localeCompare(a.date))).slice(0,3);
   const recentHtml=recent.length
-    ? recent.map(g=>`<div class="dayhead"><span class="d">${fmtDate(g.date)}</span><span class="c">${g.items.length} exo${g.items.length>1?'s':''}</span></div>${g.items.map(exerciseCard).join('')}`).join('')
+    ? recent.map(g=>`<div class="dayhead"><span class="d">${fmtDate(g.date)}</span><span class="c">${g.items.length} exo${g.items.length>1?'s':''}</span></div>${g.items.map(x=>exerciseCard(x,{reorder:true})).join('')}`).join('')
     : `<div class="card"><div class="empty">Aucune séance enregistrée pour l'instant.</div></div>`;
 
   // Message d'objectif
@@ -931,6 +1043,8 @@ function renderWeek(){
       <div class="week">${daysHtml}</div></div>
     <h2>Régularité</h2><div class="card">${histHtml}</div>
     <h2>Équilibre (cette semaine)</h2><div class="card">${balanceHTML()}</div>
+    <h2>Volume de musculation <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">· cette semaine</span></h2>
+    <div class="card"><div class="row between"><span class="muted">Tonnage total soulevé<span class="info" onclick="infoVolume()">i</span></span><b style="font-size:20px">${weekVolume().toLocaleString('fr-CH')} kg</b></div></div>
     <h2>Séances récentes</h2>${recentHtml}<div style="height:70px"></div>`);
 }
 
@@ -947,15 +1061,14 @@ function machineCardHTML(m){
 
 /** Onglet "Machines" : liste rangée par catégorie/groupe. */
 function renderMachines(){
-  let html=''; const used=new Set();
-  GROUPS.forEach(g=>{
-    const ms=state.machines.filter(m=>(m.group||'Autre')===g);
+  let html='';
+  // Catégories triées alphabétiquement, et machines triées par nom dans chacune
+  const groups=[...new Set(state.machines.map(m=>m.group||'Autre'))].sort((a,b)=>a.localeCompare(b,'fr',{sensitivity:'base'}));
+  groups.forEach(g=>{
+    const ms=state.machines.filter(m=>(m.group||'Autre')===g).sort((a,b)=>a.name.localeCompare(b.name,'fr',{sensitivity:'base'}));
     if(!ms.length) return;
     html+=`<h2>${g}</h2><div class="mlist">`+ms.map(machineCardHTML).join('')+`</div>`;
-    ms.forEach(m=>used.add(m.id));
   });
-  const rest=state.machines.filter(m=>!used.has(m.id)); // sécurité : groupe inconnu
-  if(rest.length) html+=`<h2>Autre</h2><div class="mlist">`+rest.map(machineCardHTML).join('')+`</div>`;
   setView(`<h1>Machines</h1><p class="sub">Regroupées par catégorie · touche pour l'historique et la progression</p>${html}<div style="height:70px"></div>`);
 }
 
@@ -968,22 +1081,39 @@ function openMachine(id){
   let chart='', records='';
 
   if(cardio){
-    // --- Progression CARDIO : durée + niveau ---
+    const tread=isTreadmill(id);
+    // --- Progression CARDIO : durée + niveau (+ champs facultatifs renseignés) ---
     if(chron.length>=2){
       const dates=chron.map(x=>x.date), first=chron[0].date, last=chron[chron.length-1].date;
       chart=`<h2>Progression <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">· touche les courbes</span></h2><div class="card">
         <p class="note" style="margin-top:0">Du ${fmtDate(first)} au ${fmtDate(last)} · ${chron.length} séances</p>
         ${metricBlock('Durée (min)',chron.map(x=>Number(x.duree)),dates,' min','var(--accent)')}
-        ${metricBlock('Niveau',chron.map(x=>Number(x.niveau)),dates,'','var(--amber)')}</div>`;
+        ${metricBlock('Niveau',chron.map(x=>Number(x.niveau)),dates,'','var(--amber)')}
+        ${optMetric('Distance',chron,x=>x.distance,'','var(--blue)')}
+        ${optMetric('Tour / minute',chron,x=>x.rpm,'','#a78bfa')}
+        ${tread?optMetric('Vitesse (km/h)',chron,x=>x.speed,' km/h','var(--accent)'):''}
+        ${tread?optMetric('Inclinaison (%)',chron,x=>x.incline,' %','var(--amber)'):''}</div>`;
     } else if(chron.length===1){
       chart=`<h2>Progression</h2><div class="card"><div class="empty">Ajoute au moins 2 séances sur cette machine pour voir les courbes d'évolution.</div></div>`;
     }
     if(ss.length>=1){
       const durs=ss.map(x=>Number(x.duree)), maxD=Math.max(...durs), recD=ss.find(x=>Number(x.duree)===maxD);
       const maxL=Math.max(...ss.map(x=>Number(x.niveau)));
+      // Record de distance (si renseignée au moins une fois)
+      const distPts=ss.map(x=>({x,v:numVal(x.distance)})).filter(p=>p.v!=null);
+      let distRec='';
+      if(distPts.length){ const best=distPts.reduce((a,b)=>b.v>a.v?b:a); distRec=`<div class="rec"><span>📏 Distance max</span><b>${esc(String(best.x.distance))} <small>le ${fmtDate(best.x.date)}</small></b></div>`; }
+      // Records tapis : vitesse + inclinaison max
+      let treadRec='';
+      if(tread){
+        const spPts=ss.map(x=>({x,v:numVal(x.speed)})).filter(p=>p.v!=null);
+        if(spPts.length){ const b=spPts.reduce((a,c)=>c.v>a.v?c:a); treadRec+=`<div class="rec"><span>🏃 Vitesse max</span><b>${b.v} km/h <small>le ${fmtDate(b.x.date)}</small></b></div>`; }
+        const inPts=ss.map(x=>({x,v:numVal(x.incline)})).filter(p=>p.v!=null);
+        if(inPts.length){ const b=inPts.reduce((a,c)=>c.v>a.v?c:a); treadRec+=`<div class="rec"><span>⛰ Inclinaison max</span><b>${b.v} % <small>le ${fmtDate(b.x.date)}</small></b></div>`; }
+      }
       records=`<h2>Records</h2><div class="card">
         <div class="rec"><span>⏱ Durée max</span><b>${maxD} min <small>le ${fmtDate(recD.date)}</small></b></div>
-        <div class="rec"><span>Niveau max</span><b>${maxL}</b></div></div>`;
+        <div class="rec"><span>Niveau max</span><b>${maxL}</b></div>${distRec}${treadRec}</div>`;
     }
   } else {
     // --- Progression MUSCU : poids + séries + répétitions ---
@@ -992,6 +1122,7 @@ function openMachine(id){
       chart=`<h2>Progression <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">· touche les courbes</span></h2><div class="card">
         <p class="note" style="margin-top:0">Du ${fmtDate(first)} au ${fmtDate(last)} · ${chron.length} exercices</p>
         ${metricBlock('Poids (kg)',chron.map(x=>Number(x.weight)),dates,' kg','var(--accent)')}
+        ${metricBlock('Volume (kg)',chron.map(x=>Number(x.weight)*Number(x.sets)*Number(x.reps)),dates,' kg','#a78bfa')}
         ${metricBlock('Séries',chron.map(x=>Number(x.sets)),dates,'','var(--amber)')}
         ${metricBlock('Répétitions',chron.map(x=>Number(x.reps)),dates,'','var(--blue)')}</div>`;
     } else if(chron.length===1){
@@ -1000,8 +1131,10 @@ function openMachine(id){
     if(ss.length>=1){
       const weights=ss.map(x=>Number(x.weight)), maxW=Math.max(...weights), recEx=ss.find(x=>Number(x.weight)===maxW);
       const max1=Math.max(...ss.map(ex1rm));
+      const vols=ss.map(x=>({x,v:Number(x.weight)*Number(x.sets)*Number(x.reps)})), bestV=vols.reduce((a,b)=>b.v>a.v?b:a);
       records=`<h2>Records</h2><div class="card">
         <div class="rec"><span>🏆 Poids max</span><b>${maxW} kg <small>le ${fmtDate(recEx.date)}</small></b></div>
+        <div class="rec"><span>🔩 Volume max<span class="info" onclick="infoVolume()">i</span></span><b>${bestV.v} kg <small>le ${fmtDate(bestV.x.date)}</small></b></div>
         <div class="rec"><span>1RM estimé<span class="info" onclick="info1RM()">i</span></span><b>${max1} kg</b></div></div>`;
     }
   }
@@ -1042,8 +1175,6 @@ function renderSettings(){
         <button data-p="left" class="${rp==='left'?'sel ok':''}" onclick="setRestPos('left')">Gauche</button>
         <button data-p="right" class="${rp==='right'?'sel ok':''}" onclick="setRestPos('right')">Droite</button>
       </div></div>
-    <h2>Machines</h2>
-    <div class="card mcard" onclick="openMachinesEdit()"><div><div class="name">Mes machines</div><div class="meta">${state.machines.length} machine${state.machines.length>1?'s':''}</div></div><span class="chev">›</span></div>
     <h2>Sauvegarde &amp; restauration</h2>
     <div class="card">
       <button class="btn" onclick="exportBackup()">Exporter une sauvegarde (.json)</button>
@@ -1077,55 +1208,9 @@ function changeRest(d){
   document.getElementById('rest-minus').disabled=(v<=15); document.getElementById('rest-plus').disabled=(v>=300);
 }
 
-/* ===== Édition des machines (sous-écran) ===== */
-function groupOptions(sel){ return GROUPS.filter(g=>g!=='Cardio').map(g=>`<option value="${g}"${g===sel?' selected':''}>${g}</option>`).join(''); }
-function typeOptions(sel){ return `<option value="strength"${sel!=='cardio'?' selected':''}>Musculation</option><option value="cardio"${sel==='cardio'?' selected':''}>Cardio</option>`; }
-function openMachinesEdit(){ renderMachinesEdit(); const s=document.getElementById('screen-medit'); s.scrollTop=0; s.classList.add('open'); updateFloating(); }
-function closeMedit(){ document.getElementById('screen-medit').classList.remove('open'); if(currentTab==='settings') renderSettings(); updateFloating(); }
-function renderMachinesEdit(){
-  const mach=state.machines.map(m=>`<div class="card medit">
-    <div class="cfgrow" style="margin-bottom:8px"><div class="f"><input value="${esc(m.name)}" onchange="renameMachine('${m.id}',this.value)"></div>
-      <button class="xbtn" onclick="deleteMachine('${m.id}')">✕</button></div>
-    <label style="margin-bottom:6px">Type</label>
-    <select onchange="setMachineType('${m.id}',this.value)">${typeOptions(m.type)}</select>
-    ${m.type==='cardio'
-      ? `<p class="note">Machine de cardio · programme, niveau, durée.</p>`
-      : `<label style="margin:10px 0 6px">Groupe musculaire</label><select onchange="setMachineGroup('${m.id}',this.value)">${groupOptions(m.group||'Autre')}</select>`}
-  </div>`).join('');
-  document.getElementById('screen-medit-inner').innerHTML=`
-    <div class="navbar"><button class="back" onclick="closeMedit()">‹ Réglages</button></div>
-    <h1>Mes machines</h1><p class="sub">${state.machines.length} machine${state.machines.length>1?'s':''} · type, classement, ajout, suppression</p>
-    <div style="margin-top:14px">${mach}</div>
-    <div class="card medit">
-      <div class="cfgrow" style="margin-bottom:8px"><div class="f"><input id="new-machine" placeholder="Nouvelle machine…"></div>
-        <button class="xbtn" style="color:var(--accent)" onclick="addMachine()">＋</button></div>
-      <label style="margin-bottom:6px">Type</label>
-      <select id="new-type" onchange="toggleNewGroup()">${typeOptions('strength')}</select>
-      <div id="new-group-wrap"><label style="margin:10px 0 6px">Groupe musculaire</label><select id="new-group">${groupOptions('Autre')}</select></div>
-    </div>`;
-}
-function toggleNewGroup(){ document.getElementById('new-group-wrap').style.display=document.getElementById('new-type').value==='cardio'?'none':'block'; }
-function renameMachine(id,name){ const m=machine(id); if(m){ const n=name.trim(); if(n) m.name=n; save(); } }
-function setMachineGroup(id,g){ const m=machine(id); if(m){ m.group=g; save(); } }
-function setMachineType(id,t){
-  const m=machine(id); if(!m) return;
-  m.type=t;
-  if(t==='cardio') m.group='Cardio'; else if(m.group==='Cardio') m.group='Autre';
-  save(); renderMachinesEdit();
-}
-function addMachine(){
-  const i=document.getElementById('new-machine'), n=i.value.trim(); if(!n) return;
-  const t=document.getElementById('new-type').value;
-  const g=(t==='cardio')?'Cardio':(document.getElementById('new-group').value||'Autre');
-  state.machines.push({id:uid(),name:n,group:g,type:t});
-  save(); renderMachinesEdit(); toast('Machine ajoutée ✓');
-}
-function deleteMachine(id){
-  if(state.machines.length<=1){ toast('Garde au moins une machine'); return; }
-  askConfirm('Supprimer « '+machineName(id)+' » ? Les exercices déjà enregistrés restent dans l\'historique.', ()=>{
-    state.machines=state.machines.filter(m=>m.id!==id); save(); renderMachinesEdit(); toast('Machine supprimée');
-  },'Supprimer');
-}
+/* ===== Les machines ne sont plus modifiables dans l'app ===== */
+/* (ajout / suppression / renommage se font désormais par release GitHub :
+   il suffit d'éditer DEFAULT_MACHINES et la migration correspondante.) */
 function resetAll(){
   askConfirm('Effacer TOUTES tes données ? Action irréversible.', ()=>{
     state={settings:{weeklyGoal:3,restSeconds:60},machines:[],exercises:[]}; normalize(); save(); renderSettings(); toast('Données effacées');
@@ -1135,17 +1220,19 @@ function resetAll(){
 /* ===== "Répéter" (copie d'exercices vers aujourd'hui) ===== */
 /** Duplique un exercice pour aujourd'hui (résultat/commentaire remis à zéro). */
 function cloneForToday(x){
+  const d=todayISO();
   if(isCardioMachine(x.machineId))
-    return {id:uid(),date:todayISO(),machineId:x.machineId,programme:x.programme,niveau:x.niveau,duree:x.duree,rpm:x.rpm??'',distance:x.distance??'',comment:''};
-  return {id:uid(),date:todayISO(),machineId:x.machineId,weight:x.weight,sets:x.sets,reps:x.reps,status:'success',configs:(x.configs||[]).slice(0,MAX_CONFIGS),comment:''};
+    return {id:uid(),date:d,order:nextOrder(d),machineId:x.machineId,programme:x.programme,niveau:x.niveau,duree:x.duree,rpm:x.rpm??'',distance:x.distance??'',incline:x.incline??'',speed:x.speed??'',comment:''};
+  return {id:uid(),date:d,order:nextOrder(d),machineId:x.machineId,weight:x.weight,sets:x.sets,reps:x.reps,status:'success',configs:(x.configs||[]).slice(0,MAX_CONFIGS),comment:''};
 }
 /** Variante "Répéter" depuis la fiche machine : ne reprend QUE les champs
-    obligatoires, laisse vides les champs facultatifs (tr/min, distance, configs)
-    qui changent souvent d'un exercice à l'autre. */
+    obligatoires, laisse vides les champs facultatifs (tr/min, distance,
+    inclinaison, vitesse, configs) qui changent souvent d'un exercice à l'autre. */
 function cloneMandatory(x){
+  const d=todayISO();
   if(isCardioMachine(x.machineId))
-    return {id:uid(),date:todayISO(),machineId:x.machineId,programme:x.programme,niveau:x.niveau,duree:x.duree,rpm:'',distance:'',comment:''};
-  return {id:uid(),date:todayISO(),machineId:x.machineId,weight:x.weight,sets:x.sets,reps:x.reps,status:'success',configs:[],comment:''};
+    return {id:uid(),date:d,order:nextOrder(d),machineId:x.machineId,programme:x.programme,niveau:x.niveau,duree:x.duree,rpm:'',distance:'',incline:'',speed:'',comment:''};
+  return {id:uid(),date:d,order:nextOrder(d),machineId:x.machineId,weight:x.weight,sets:x.sets,reps:x.reps,status:'success',configs:[],comment:''};
 }
 function repeatLastSession(){
   const days=[...new Set(state.exercises.map(x=>x.date))].filter(d=>d<todayISO()).sort();
@@ -1280,6 +1367,7 @@ function closeInfo(){ document.getElementById('info-bg').classList.remove('open'
 function openPhotoZoom(url){ if(!url) return; document.getElementById('zoom-img').src=url; document.getElementById('zoom-bg').classList.add('open'); }
 function closePhotoZoom(){ document.getElementById('zoom-bg').classList.remove('open'); }
 function info1RM(){ showInfo('Qu\u2019est-ce que le 1RM ?','Le 1RM (« one-rep max », ou répétition maximale) est le poids le plus lourd que tu pourrais soulever une seule fois sur cet exercice. Le tester en vrai étant risqué, l\'app l\'estime à partir de ton poids et de tes répétitions (formule d\'Epley : poids × (1 + reps ÷ 30)). C\'est un repère pratique pour suivre ta force globale, même quand tu changes de nombre de répétitions.'); }
+function infoVolume(){ showInfo('Qu\u2019est-ce que le volume ?','Le volume (ou tonnage) d\'un exercice = poids × séries × répétitions. C\'est la charge totale soulevée sur l\'exercice. C\'est souvent le meilleur indicateur de progression réelle : tu peux progresser en volume même sans augmenter le poids (plus de séries ou de répétitions).'); }
 document.getElementById('info-bg').addEventListener('click',e=>{ if(e.target.id==='info-bg') closeInfo(); });
 
 /* ===== Navigation entre onglets ===== */
@@ -1322,6 +1410,7 @@ function setFormMode(id){
   const cardio=isCardioMachine(id);
   document.getElementById('fields-strength').style.display=cardio?'none':'block';
   document.getElementById('fields-cardio').style.display=cardio?'block':'none';
+  document.getElementById('fields-treadmill').style.display=isTreadmill(id)?'block':'none'; // tapis uniquement
 }
 
 /* --- Gestion des lignes de configuration (muscu) --- */
@@ -1340,7 +1429,7 @@ function addConfigRow(val){
 function relabelConfigs(){ document.querySelectorAll('#f-configs .cfgrow .cfglabel').forEach((l,i)=>l.textContent='Configuration '+(i+1)); }
 
 /* --- Erreurs de validation --- */
-function clearErrors(){ ['weight','sets','reps','level','dur','rpm'].forEach(k=>{ document.getElementById('f-'+k).classList.remove('bad'); const e=document.getElementById('err-'+k); if(e) e.classList.remove('show'); }); }
+function clearErrors(){ ['weight','sets','reps','level','dur','rpm','incline','speed'].forEach(k=>{ const f=document.getElementById('f-'+k); if(f) f.classList.remove('bad'); const e=document.getElementById('err-'+k); if(e) e.classList.remove('show'); }); }
 function showErr(id,on){ document.getElementById('f-'+id).classList.toggle('bad',on); document.getElementById('err-'+id).classList.toggle('show',on); }
 
 /** Mini-mémoire : pré-remplit avec le dernier exercice de la machine. */
@@ -1349,9 +1438,11 @@ function prefillFromLast(id){
   const cardio=isCardioMachine(id), x=lastForMachine(id);
   if(cardio){
     if(x){ document.getElementById('f-prog').value=x.programme||'Manuel'; document.getElementById('f-level').value=x.niveau??''; document.getElementById('f-dur').value=x.duree??30;
-      document.getElementById('f-rpm').value=x.rpm??''; document.getElementById('f-dist').value=x.distance??''; }
+      document.getElementById('f-rpm').value=x.rpm??''; document.getElementById('f-dist').value=x.distance??'';
+      document.getElementById('f-incline').value=x.incline??''; document.getElementById('f-speed').value=x.speed??''; }
     else  { document.getElementById('f-prog').value='Manuel'; document.getElementById('f-level').value=''; document.getElementById('f-dur').value=30;
-      document.getElementById('f-rpm').value=''; document.getElementById('f-dist').value=''; }
+      document.getElementById('f-rpm').value=''; document.getElementById('f-dist').value='';
+      document.getElementById('f-incline').value=''; document.getElementById('f-speed').value=''; }
     updateRpmKmh();
   } else {
     if(x){
@@ -1367,18 +1458,20 @@ function prefillFromLast(id){
 function openForm(opts){
   opts=opts||{}; editingId=opts.id||null; clearErrors();
   const sel=document.getElementById('f-machine');
-  sel.innerHTML=state.machines.map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('');
+  sel.innerHTML=[...state.machines].sort((a,b)=>a.name.localeCompare(b.name,'fr',{sensitivity:'base'})).map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('');
 
   if(editingId){
     // --- Édition : on garde la date d'origine (lecture seule) ---
     const x=state.exercises.find(e=>e.id===editingId), cardio=isCardioMachine(x.machineId);
     document.getElementById('sheet-title').textContent='Modifier l\'exercice';
+    document.getElementById('date-edit').style.display='none';
     document.getElementById('date-readonly').style.display='block';
     document.getElementById('f-date-label').textContent=fmtDateFull(x.date);
     sel.value=x.machineId; setFormMode(x.machineId);
     if(cardio){
       document.getElementById('f-prog').value=x.programme||'Manuel'; document.getElementById('f-level').value=x.niveau??''; document.getElementById('f-dur').value=x.duree??30;
       document.getElementById('f-rpm').value=x.rpm??''; document.getElementById('f-dist').value=x.distance??'';
+      document.getElementById('f-incline').value=x.incline??''; document.getElementById('f-speed').value=x.speed??'';
       updateRpmKmh();
     } else {
       document.getElementById('f-weight').value=x.weight; document.getElementById('f-sets').value=x.sets; document.getElementById('f-reps').value=x.reps;
@@ -1387,9 +1480,11 @@ function openForm(opts){
     document.getElementById('f-comment').value=x.comment||'';
     document.getElementById('f-delete').style.display='block';
   } else {
-    // --- Nouveau : daté d'aujourd'hui, pré-rempli via la mini-mémoire ---
+    // --- Nouveau : date choisie (par défaut aujourd'hui, jamais dans le futur) ---
     document.getElementById('sheet-title').textContent='Nouvel exercice';
     document.getElementById('date-readonly').style.display='none';
+    document.getElementById('date-edit').style.display='block';
+    const fdate=document.getElementById('f-date'); fdate.max=todayISO(); fdate.value=opts.date||todayISO();
     if(opts.machineId) sel.value=opts.machineId;
     setFormMode(sel.value); setStatus('success'); document.getElementById('f-comment').value='';
     prefillFromLast(sel.value);
@@ -1421,8 +1516,16 @@ function saveExercise(){
     if(rpmRaw!==''){ const rOk2=/^\d*\.?\d+$/.test(rpmRaw)&&Number(rpmRaw)>=0; showErr('rpm',!rOk2); if(!rOk2) ok=false; else rpm=Math.round(Number(rpmRaw)*100)/100; }
     else showErr('rpm',false);
     const distance=document.getElementById('f-dist').value.trim();
+    // Tapis de course : inclinaison (%) + vitesse (km/h), facultatives
+    let incline='',speed='';
+    if(isTreadmill(machineId)){
+      const iRaw=document.getElementById('f-incline').value.trim().replace(',','.');
+      if(iRaw!==''){ const iOk=/^\d*\.?\d+$/.test(iRaw)&&Number(iRaw)>=0; showErr('incline',!iOk); if(!iOk) ok=false; else incline=Math.round(Number(iRaw)*100)/100; } else showErr('incline',false);
+      const spRaw=document.getElementById('f-speed').value.trim().replace(',','.');
+      if(spRaw!==''){ const spOk=/^\d*\.?\d+$/.test(spRaw)&&Number(spRaw)>=0; showErr('speed',!spOk); if(!spOk) ok=false; else speed=Math.round(Number(spRaw)*100)/100; } else showErr('speed',false);
+    }
     if(!ok){ toast('Vérifie les champs en rouge'); return; }
-    data={machineId,programme:document.getElementById('f-prog').value,niveau:lvl,duree:dur,rpm,distance,comment};
+    data={machineId,programme:document.getElementById('f-prog').value,niveau:lvl,duree:dur,rpm,distance,incline,speed,comment};
   } else {
     // --- Validation MUSCU ---
     let ok=true;
@@ -1444,12 +1547,15 @@ function saveExercise(){
   }
 
   if(editingId){
-    // Remplace proprement les champs (en gardant id + date)
+    // Remplace proprement les champs (en gardant id + date + order)
     const x=state.exercises.find(e=>e.id===editingId);
-    Object.keys(x).forEach(k=>{ if(!['id','date'].includes(k)) delete x[k]; });
+    Object.keys(x).forEach(k=>{ if(!['id','date','order'].includes(k)) delete x[k]; });
     Object.assign(x,data);
   } else {
-    state.exercises.push({id:uid(),date:todayISO(),...data});
+    // Date choisie (jamais future), placée en fin de séance de ce jour
+    let d=document.getElementById('f-date').value || todayISO();
+    if(d>todayISO()) d=todayISO();
+    state.exercises.push({id:uid(),date:d,order:nextOrder(d),...data});
   }
 
   save(); closeForm();
@@ -1515,14 +1621,15 @@ document.getElementById('import-file').addEventListener('change',function(e){
 });
 function csvCell(v){ v=String(v??''); return /[",\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
 function buildCSV(){
-  const rows=[['Date','Machine','Type','Groupe','Poids (kg)','Series','Repetitions','Programme','Niveau','Duree (min)','Tr/min','Distance','Resultat','Configurations','Commentaire']];
-  [...state.exercises].sort((a,b)=>a.date.localeCompare(b.date)).forEach(x=>{
+  const rows=[['Date','Ordre','Machine','Type','Groupe','Poids (kg)','Series','Repetitions','Volume (kg)','Programme','Niveau','Duree (min)','Tr/min','Distance','Inclinaison (%)','Vitesse (km/h)','Resultat','Configurations','Commentaire']];
+  [...state.exercises].sort((a,b)=>a.date.localeCompare(b.date)||byOrder(a,b)).forEach(x=>{
     const cardio=isCardioMachine(x.machineId);
     const cfg=cardio?'':(x.configs||[]).map((c,i)=>'Configuration '+(i+1)+': '+c).join(' | ');
-    rows.push([x.date,machineName(x.machineId),cardio?'Cardio':'Musculation',machineGroup(x.machineId),
-      cardio?'':x.weight, cardio?'':x.sets, cardio?'':x.reps,
+    const vol=cardio?'':Number(x.weight)*Number(x.sets)*Number(x.reps);
+    rows.push([x.date,(typeof x.order==='number'?x.order+1:''),machineName(x.machineId),cardio?'Cardio':'Musculation',machineGroup(x.machineId),
+      cardio?'':x.weight, cardio?'':x.sets, cardio?'':x.reps, vol,
       cardio?x.programme:'', cardio?x.niveau:'', cardio?x.duree:'',
-      cardio?(x.rpm??''):'', cardio?(x.distance??''):'',
+      cardio?(x.rpm??''):'', cardio?(x.distance??''):'', cardio?(x.incline??''):'', cardio?(x.speed??''):'',
       cardio?'':statusLabel(x.status), cfg, x.comment||'']);
   });
   return rows.map(r=>r.map(csvCell).join(',')).join('\r\n');
@@ -1538,9 +1645,11 @@ function buildMD(){
         md+='- **Programme :** '+x.programme+'\n- **Niveau :** '+x.niveau+'\n- **Durée :** '+x.duree+' min\n';
         if(x.rpm!==''&&x.rpm!=null) md+='- **Tour / minute :** '+x.rpm+'\n';
         if(x.distance!==''&&x.distance!=null) md+='- **Distance :** '+x.distance+'\n';
+        if(x.incline!==''&&x.incline!=null) md+='- **Inclinaison :** '+x.incline+' %\n';
+        if(x.speed!==''&&x.speed!=null) md+='- **Vitesse :** '+x.speed+' km/h\n';
       } else {
         md+='### '+machineName(x.machineId)+' ('+machineGroup(x.machineId)+')\n';
-        md+='- **Poids :** '+x.weight+' kg\n- **Séries × répétitions :** '+x.sets+' × '+x.reps+'\n- **Résultat :** '+statusLabel(x.status)+'\n';
+        md+='- **Poids :** '+x.weight+' kg\n- **Séries × répétitions :** '+x.sets+' × '+x.reps+'\n- **Volume :** '+(Number(x.weight)*Number(x.sets)*Number(x.reps))+' kg\n- **Résultat :** '+statusLabel(x.status)+'\n';
         (x.configs||[]).forEach((c,i)=>{ md+='- **Configuration '+(i+1)+' :** '+c+'\n'; });
       }
       if(x.comment) md+='- **Commentaire :** '+x.comment+'\n';
@@ -1564,10 +1673,38 @@ function toast(msg){
   clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2100);
 }
 
-/* ===== PWA : service worker (manifest + icônes sont des fichiers statiques) ===== */
+/* ===== PWA : service worker + détection de mise à jour ===== */
+let swReg=null, swRefreshing=false;
+function showUpdateBar(){ document.getElementById('updatebar').classList.add('show'); }
+/** Demande au nouveau service worker de prendre la main, puis recharge. */
+function applyUpdate(){
+  const w=swReg&&swReg.waiting;
+  if(w){ w.postMessage({type:'SKIP_WAITING'}); }
+  else { location.reload(); }
+}
 function setupPWA(){
+  // Tentative de verrouillage en portrait (ignoré sur iOS Safari, OK sur Android installé)
+  try{ if(screen.orientation && screen.orientation.lock) screen.orientation.lock('portrait').catch(()=>{}); }catch(e){}
   // Service worker : actif uniquement si hébergé en http(s) avec un sw.js à côté
-  try{ if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){ navigator.serviceWorker.register('sw.js').catch(()=>{}); } }catch(e){}
+  try{
+    if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){
+      navigator.serviceWorker.register('sw.js').then(reg=>{
+        swReg=reg;
+        if(reg.waiting && navigator.serviceWorker.controller) showUpdateBar();  // MAJ déjà prête
+        reg.addEventListener('updatefound',()=>{
+          const nw=reg.installing; if(!nw) return;
+          nw.addEventListener('statechange',()=>{
+            // "installed" + un contrôleur existant = il s'agit d'une mise à jour (pas 1re install)
+            if(nw.state==='installed' && navigator.serviceWorker.controller) showUpdateBar();
+          });
+        });
+      }).catch(()=>{});
+      // Quand le nouveau SW prend la main, on recharge une seule fois
+      navigator.serviceWorker.addEventListener('controllerchange',()=>{
+        if(swRefreshing) return; swRefreshing=true; location.reload();
+      });
+    }
+  }catch(e){}
 }
 
 /* ===== Démarrage ===== */
