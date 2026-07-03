@@ -268,7 +268,7 @@
   /* ---- Feuille du bas (formulaire d'exercice) ---- */
   .sheet-bg{position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:70; display:none; backdrop-filter:blur(3px);}
   .sheet-bg.open{display:block;}
-  .sheet{position:fixed; left:0; right:0; bottom:0; z-index:71; max-height:93vh; overflow-y:auto; background:var(--glass-strong);
+  .sheet{position:fixed; left:0; right:0; bottom:0; z-index:71; max-height:93vh; overflow-y:auto; overflow-x:hidden; background:var(--glass-strong);
     backdrop-filter:blur(30px) saturate(1.8); -webkit-backdrop-filter:blur(30px) saturate(1.8); border-top:1px solid var(--hi);
     border-radius:24px 24px 0 0; padding:8px 16px calc(20px + var(--safe-bot)); transform:translateY(100%);
     transition:transform .3s cubic-bezier(.33,.1,.25,1); max-width:560px; margin:0 auto;}
@@ -279,7 +279,12 @@
   /* ---- Champs de formulaire ---- */
   label{display:block; font-size:13px; font-weight:600; color:var(--muted); margin:0 0 7px;}
   input,select,textarea{width:100%; background:rgba(255,255,255,.06); border:1px solid var(--hair); color:var(--text);
-    border-radius:13px; padding:13px 14px; font-size:16px;}
+    border-radius:13px; padding:13px 14px; font-size:16px; box-sizing:border-box; max-width:100%;}
+  /* Le sélecteur de date iOS a une largeur intrinsèque qui peut déborder et
+     déformer toute la feuille : on le contraint strictement à son conteneur. */
+  input[type="date"]{-webkit-appearance:none; appearance:none; display:block; width:100%; max-width:100%;
+    min-width:0; min-height:48px; text-align:left;}
+  input[type="date"]::-webkit-date-and-time-value{text-align:left;}
   input:focus,select:focus,textarea:focus{outline:none; border-color:var(--accent); background:rgba(255,255,255,.09);}
   input.bad{border-color:var(--red); background:rgba(255,107,107,.08);}     /* champ invalide */
   textarea{resize:none; min-height:70px;}
@@ -287,6 +292,24 @@
   .two{display:flex; gap:12px;} .two>.field{flex:1;}
   .err{color:var(--red); font-size:12px; margin-top:6px; display:none;} .err.show{display:block;}
   .readonly{font-size:15px; font-weight:600; padding:11px 0;}
+  /* Rappel du dernier commentaire noté pour la machine choisie */
+  .lastcmt{margin-top:8px; font-size:13px; line-height:1.45; color:var(--text); background:var(--accent-dim);
+    border:1px solid rgba(197,242,74,.25); border-left:3px solid var(--accent); border-radius:10px; padding:9px 11px;}
+  .lastcmt .who{display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:var(--accent); margin-bottom:3px;}
+  /* Barre de recherche (onglet Machines) */
+  .searchwrap{position:relative; margin:14px 0 4px;}
+  .searchwrap svg{position:absolute; left:14px; top:50%; transform:translateY(-50%); width:17px; height:17px; color:var(--muted); pointer-events:none;}
+  .searchwrap input{padding-left:40px;}
+  .searchwrap .clear{position:absolute; right:8px; top:50%; transform:translateY(-50%); width:32px; height:32px; border-radius:50%;
+    background:rgba(255,255,255,.08); border:none; color:var(--muted); font-size:14px; cursor:pointer; display:none;}
+  .searchwrap.has .clear{display:block;}
+  /* Cartes de programme */
+  .progcard{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+  .progcard .pinfo .name{font-size:16px; font-weight:700;}
+  .progcard .pinfo .meta{font-size:12.5px; color:var(--muted); margin-top:3px; line-height:1.45;}
+  .progcard .go{flex:none; background:var(--accent); color:#10130a; border:none; border-radius:12px; padding:10px 14px; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap;}
+  .progcard .go:disabled{opacity:.4;}
+  .progcard .go:active{transform:scale(.95);}
   .seg{display:flex; gap:8px;}
   .seg button{flex:1; background:rgba(255,255,255,.06); border:1px solid var(--hair); color:var(--muted); border-radius:12px;
     padding:11px 6px; font-size:14px; font-weight:600; cursor:pointer;}
@@ -397,7 +420,8 @@
   <h3 id="sheet-title">Nouvel exercice</h3>
   <div class="field" id="date-edit"><label>Date de la séance</label><input type="date" id="f-date"></div>
   <div class="field" id="date-readonly" style="display:none"><label>Séance</label><div class="readonly" id="f-date-label"></div></div>
-  <div class="field"><label>Machine</label><select id="f-machine"></select></div>
+  <div class="field"><label>Machine</label><select id="f-machine"></select>
+    <div class="lastcmt" id="last-comment" style="display:none"></div></div>
 
   <!-- Champs MUSCULATION -->
   <div id="fields-strength">
@@ -510,8 +534,8 @@
    ================================================================ */
 
 /* ===== Constantes de version ===== */
-const VERSION='alpha-v1.4';
-const VERSION_DATE='27 juin 2026';
+const VERSION='alpha-v1.5';
+const VERSION_DATE='4 juillet 2026';
 const DATA_VERSION=2;                                 // version du schéma de données (migrations one-shot)
 const MAX_CONFIGS=3;                                  // configs max par exercice muscu
 const CARDIO_PROGRAMS=['Manuel','Puissance','Fréquence cardiaque','Colline','Objectif +','Test de forme'];
@@ -820,8 +844,17 @@ function moveExercise(id,dir){
 function statusLabel(s){ return s==='success'?'Réussi':s==='partial'?'Partiel':'Échoué'; }
 function statusBadge(s){ return s==='success'?'<span class="badge b-ok">Réussi</span>':s==='partial'?'<span class="badge b-part">Partiel</span>':'<span class="badge b-fail">Échoué</span>'; }
 function lastForMachine(id){ const l=state.exercises.filter(x=>x.machineId===id).sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id)); return l[0]||null; }
+/** Dernier exercice RÉUSSI de la machine (mini-mémoire cohérente avec les records).
+    Repli sur le dernier exercice tout court si aucun réussi n'existe (cardio inclus :
+    pas de notion d'échec, donc renvoie simplement le dernier). */
+function lastSuccessForMachine(id){
+  const l=state.exercises.filter(x=>x.machineId===id&&x.status!=='fail').sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id));
+  return l[0]||lastForMachine(id);
+}
 function ex1rm(x){ return Math.round(Number(x.weight)*(1+Number(x.reps)/30)); } // 1RM estimé (Epley)
 function machineMaxWeight(id){ const ws=state.exercises.filter(x=>x.machineId===id).map(x=>Number(x.weight)); return ws.length?Math.max(...ws):null; }
+/** Poids max en ne comptant QUE les exercices réussis (référence des records). */
+function machineMaxWeightSuccess(id){ const ws=state.exercises.filter(x=>x.machineId===id&&x.status!=='fail').map(x=>Number(x.weight)); return ws.length?Math.max(...ws):null; }
 function machineCount(id){ return state.exercises.filter(x=>x.machineId===id).length; }
 /** Nombre d'exercices par groupe musculaire pour la semaine en cours. */
 function weekGroupCounts(){
@@ -958,8 +991,9 @@ function exerciseCard(x,opts){
       ${x.comment?`<div class="cmt">${esc(x.comment)}</div>`:''}</div>`;
   }
   // --- Musculation ---
-  const max=machineMaxWeight(x.machineId);
-  const isPR = max!=null && machineCount(x.machineId)>=2 && Number(x.weight)===max && Number(x.weight)>0;
+  // Record : jamais sur un exercice échoué, et comparé aux seuls exercices réussis
+  const max=machineMaxWeightSuccess(x.machineId);
+  const isPR = x.status!=='fail' && max!=null && machineCount(x.machineId)>=2 && Number(x.weight)===max && Number(x.weight)>0;
   const configs=(x.configs||[]).map((c,i)=>`<span class="tag"><b>Config ${i+1}</b> · ${esc(c)}</span>`).join('');
   const w=(x.weight!==''&&x.weight!=null)?x.weight+' kg':'';
   return `<div class="card ex" onclick="editExercise('${x.id}')">${head}
@@ -979,6 +1013,7 @@ function renderToday(){
     : `<div class="card"><div class="empty">Pas encore d'exercice aujourd'hui.<br>Appuie sur « ＋ Nouvel exercice » pour démarrer ta séance 💪</div></div>`;
   setView(`<h1>Aujourd'hui</h1><p class="sub">${fmtDateFull(t)}</p>
     ${(items.length===0 && hasPast)?`<button class="btn ghost" style="margin-top:12px" onclick="repeatLastSession()">↻ Répéter la dernière séance</button>`:''}
+    ${items.length===0?`<h2>Programmes</h2>${programsHTML()}`:''}
     ${items.length?`<div class="dayhead" style="margin-top:18px"><span class="d">Séance du jour</span><span class="c">${items.length} exercice${items.length>1?'s':''}</span></div>`:'<div style="height:14px"></div>'}
     ${body}<div style="height:80px"></div>`);
 }
@@ -1060,17 +1095,50 @@ function machineCardHTML(m){
 }
 
 /** Onglet "Machines" : liste rangée par catégorie/groupe. */
+let machineQuery='';                                   // filtre de recherche (onglet Machines)
 function renderMachines(){
+  const q=machineQuery.trim().toLowerCase();
+  // Filtre par nom OU catégorie ; catégories triées A→Z, machines triées A→Z
+  const match=m=>!q || (m.name||'').toLowerCase().includes(q) || (m.group||'Autre').toLowerCase().includes(q);
+  const pool=state.machines.filter(match);
+  const groups=[...new Set(pool.map(m=>m.group||'Autre'))].sort((a,b)=>a.localeCompare(b,'fr',{sensitivity:'base'}));
   let html='';
-  // Catégories triées alphabétiquement, et machines triées par nom dans chacune
-  const groups=[...new Set(state.machines.map(m=>m.group||'Autre'))].sort((a,b)=>a.localeCompare(b,'fr',{sensitivity:'base'}));
   groups.forEach(g=>{
-    const ms=state.machines.filter(m=>(m.group||'Autre')===g).sort((a,b)=>a.name.localeCompare(b.name,'fr',{sensitivity:'base'}));
+    const ms=pool.filter(m=>(m.group||'Autre')===g).sort((a,b)=>a.name.localeCompare(b.name,'fr',{sensitivity:'base'}));
     if(!ms.length) return;
     html+=`<h2>${g}</h2><div class="mlist">`+ms.map(machineCardHTML).join('')+`</div>`;
   });
-  setView(`<h1>Machines</h1><p class="sub">Regroupées par catégorie · touche pour l'historique et la progression</p>${html}<div style="height:70px"></div>`);
+  if(!pool.length) html=`<div class="card"><div class="empty">Aucune machine ne correspond à « ${esc(machineQuery)} ».</div></div>`;
+  setView(`<h1>Machines</h1><p class="sub">Regroupées par catégorie · touche pour l'historique et la progression</p>
+    <div class="searchwrap${q?' has':''}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input type="search" id="machine-search" placeholder="Rechercher une machine…" autocomplete="off" value="${esc(machineQuery)}">
+      <button class="clear" onclick="clearMachineSearch()">✕</button>
+    </div>${html}<div style="height:70px"></div>`);
+  // Filtrage à la frappe SANS re-rendre le champ (pour ne pas perdre le focus/clavier)
+  const inp=document.getElementById('machine-search');
+  inp.addEventListener('input',()=>{ machineQuery=inp.value; refreshMachineList(); });
 }
+/** Re-rend uniquement la liste (le champ de recherche garde le focus). */
+function refreshMachineList(){
+  const q=machineQuery.trim().toLowerCase();
+  const match=m=>!q || (m.name||'').toLowerCase().includes(q) || (m.group||'Autre').toLowerCase().includes(q);
+  const pool=state.machines.filter(match);
+  const groups=[...new Set(pool.map(m=>m.group||'Autre'))].sort((a,b)=>a.localeCompare(b,'fr',{sensitivity:'base'}));
+  let html='';
+  groups.forEach(g=>{
+    const ms=pool.filter(m=>(m.group||'Autre')===g).sort((a,b)=>a.name.localeCompare(b.name,'fr',{sensitivity:'base'}));
+    if(!ms.length) return;
+    html+=`<h2>${g}</h2><div class="mlist">`+ms.map(machineCardHTML).join('')+`</div>`;
+  });
+  if(!pool.length) html=`<div class="card"><div class="empty">Aucune machine ne correspond à « ${esc(machineQuery)} ».</div></div>`;
+  const wrap=document.querySelector('.searchwrap'); if(wrap) wrap.classList.toggle('has',!!q);
+  // Remplace tout ce qui suit la barre de recherche
+  let n=wrap?wrap.nextElementSibling:null;
+  while(n){ const next=n.nextElementSibling; n.remove(); n=next; }
+  if(wrap) wrap.insertAdjacentHTML('afterend',html+'<div style="height:70px"></div>');
+}
+function clearMachineSearch(){ machineQuery=''; const i=document.getElementById('machine-search'); if(i){ i.value=''; i.focus(); } refreshMachineList(); }
 
 /** Écran de détail d'une machine : progression, records, historique. */
 function openMachine(id){
@@ -1129,13 +1197,21 @@ function openMachine(id){
       chart=`<h2>Progression</h2><div class="card"><div class="empty">Ajoute au moins 2 exercices sur cette machine pour voir les courbes d'évolution.</div></div>`;
     }
     if(ss.length>=1){
-      const weights=ss.map(x=>Number(x.weight)), maxW=Math.max(...weights), recEx=ss.find(x=>Number(x.weight)===maxW);
-      const max1=Math.max(...ss.map(ex1rm));
+      // Records : uniquement sur les exercices non échoués
+      const okEx=ss.filter(x=>x.status!=='fail');
+      const weights=okEx.map(x=>Number(x.weight));
       const vols=ss.map(x=>({x,v:Number(x.weight)*Number(x.sets)*Number(x.reps)})), bestV=vols.reduce((a,b)=>b.v>a.v?b:a);
-      records=`<h2>Records</h2><div class="card">
-        <div class="rec"><span>🏆 Poids max</span><b>${maxW} kg <small>le ${fmtDate(recEx.date)}</small></b></div>
+      let recRows='';
+      if(okEx.length){
+        const maxW=Math.max(...weights), recEx=okEx.find(x=>Number(x.weight)===maxW);
+        const max1=Math.max(...okEx.map(ex1rm));
+        recRows=`<div class="rec"><span>🏆 Poids max</span><b>${maxW} kg <small>le ${fmtDate(recEx.date)}</small></b></div>
         <div class="rec"><span>🔩 Volume max<span class="info" onclick="infoVolume()">i</span></span><b>${bestV.v} kg <small>le ${fmtDate(bestV.x.date)}</small></b></div>
-        <div class="rec"><span>1RM estimé<span class="info" onclick="info1RM()">i</span></span><b>${max1} kg</b></div></div>`;
+        <div class="rec"><span>1RM estimé<span class="info" onclick="info1RM()">i</span></span><b>${max1} kg</b></div>`;
+      } else {
+        recRows=`<div class="empty">Pas encore d'exercice réussi sur cette machine.</div>`;
+      }
+      records=`<h2>Records</h2><div class="card">${recRows}</div>`;
     }
   }
 
@@ -1248,10 +1324,65 @@ function repeatLastSession(){
   else doIt();
 }
 function repeatLastForMachine(id){
-  const x=lastForMachine(id);
+  const x=lastSuccessForMachine(id);                  // dernier RÉUSSI
   if(!x){ toast('Aucun exercice à répéter'); return; }
   state.exercises.push(cloneMandatory(x));            // champs facultatifs laissés vides
   save(); openMachine(id); toast('Exercice répété ✓');
+}
+
+/* ===== Programmes de séance =====
+   Un programme crée d'un coup, pour AUJOURD'HUI exclusivement, une série
+   d'exercices pré-remplis (via la mini-mémoire de chaque machine), dans
+   l'ordre défini. Les machines sont référencées par NOM DE BASE : la
+   correspondance ignore la casse et la précision entre parenthèses, et
+   des alias gèrent les anciens noms (ex : "Leg curl" → "Seated leg curl"). */
+const PROGRAMS=[
+  {name:'PKF1-Nocardio',
+   machines:['Leg press','Leg extension','Hip adduction','Shoulder press','Chest press','Pectoral fly','Abdominal']},
+  {name:'PKF2-Nocardio',
+   machines:['Leg press','Seated leg curl','Hip abduction','Pulldown','Rear deltoid','Biceps curl']},
+];
+// Alias (ancien nom → nom de base actuel) pour la robustesse aux renommages
+const PROGRAM_ALIASES={'leg curl':'seated leg curl','pull down':'pulldown'};
+
+/** Nom de base d'une machine : minuscules, sans la précision entre parenthèses. */
+function baseName(n){ return (n||'').trim().toLowerCase().replace(/\s*\(.*\)\s*$/,'').trim(); }
+/** Retrouve une machine du state à partir d'un nom de programme (tolérant). */
+function machineForProgram(name){
+  let key=baseName(name);
+  key=PROGRAM_ALIASES[key]||key;
+  return state.machines.find(m=>baseName(m.name)===key)||null;
+}
+/** Applique un programme : crée les exercices d'AUJOURD'HUI dans l'ordre du programme. */
+function applyProgram(idx){
+  const p=PROGRAMS[idx]; if(!p) return;
+  const found=[], missing=[];
+  p.machines.forEach(n=>{ const m=machineForProgram(n); if(m) found.push(m); else missing.push(n); });
+  if(!found.length){ toast('Aucune machine du programme n\'existe'); return; }
+  const doIt=()=>{
+    const d=todayISO();
+    found.forEach(m=>{
+      const last=lastSuccessForMachine(m.id);                               // dernier RÉUSSI
+      if(last){ state.exercises.push(cloneMandatory(last)); }               // pré-rempli via la mini-mémoire
+      else if(m.type==='cardio'){ state.exercises.push({id:uid(),date:d,order:nextOrder(d),machineId:m.id,programme:'Manuel',niveau:1,duree:30,rpm:'',distance:'',incline:'',speed:'',comment:''}); }
+      else { state.exercises.push({id:uid(),date:d,order:nextOrder(d),machineId:m.id,weight:0,sets:3,reps:10,status:'success',configs:[],comment:''}); }
+    });
+    save(); render();
+    toast('Programme '+p.name+' ajouté ('+found.length+' exercices) ✓'+(missing.length?' · '+missing.length+' machine(s) introuvable(s)':''));
+  };
+  const already=state.exercises.some(x=>x.date===todayISO());
+  if(already) askConfirm('Ajouter les '+found.length+' exercices du programme « '+p.name+' » à la séance d\'aujourd\'hui ?',doIt,'Ajouter');
+  else doIt();
+}
+/** Cartes des programmes (onglet Aujourd'hui). */
+function programsHTML(){
+  return PROGRAMS.map((p,i)=>{
+    const names=p.machines.map(n=>{ const m=machineForProgram(n); return m?esc(m.name):esc(n)+' ⚠'; });
+    return `<div class="card progcard">
+      <div class="pinfo"><div class="name">${esc(p.name)}</div><div class="meta">${p.machines.length} exercices · ${names.join(' · ')}</div></div>
+      <button class="go" onclick="applyProgram(${i})">Lancer</button>
+    </div>`;
+  }).join('');
 }
 
 /* ===== Minuteur de repos (lancé manuellement via la bulle ⏱) =====
@@ -1398,15 +1529,22 @@ function updateRpmKmh(){
   } else { el.textContent=''; el.style.display='none'; }
 }
 document.getElementById('f-rpm').addEventListener('input',updateRpmKmh);
-// Changement de machine → bascule muscu/cardio + pré-remplissage
+// Changement de machine → bascule muscu/cardio + pré-remplissage + dernier commentaire
 document.getElementById('f-machine').addEventListener('change',()=>{
   const id=document.getElementById('f-machine').value;
   setFormMode(id);
-  if(!editingId) prefillFromLast(id);
+  if(!editingId && id) prefillFromLast(id);
+  showLastComment(id);
 });
 
-/** Affiche le bon jeu de champs selon le type de machine. */
+/** Affiche le bon jeu de champs selon le type de machine (rien si aucune machine choisie). */
 function setFormMode(id){
+  if(!id){ // option vide : aucun champ spécifique tant qu'une machine n'est pas choisie
+    document.getElementById('fields-strength').style.display='none';
+    document.getElementById('fields-cardio').style.display='none';
+    document.getElementById('fields-treadmill').style.display='none';
+    return;
+  }
   const cardio=isCardioMachine(id);
   document.getElementById('fields-strength').style.display=cardio?'none':'block';
   document.getElementById('fields-cardio').style.display=cardio?'block':'none';
@@ -1435,7 +1573,8 @@ function showErr(id,on){ document.getElementById('f-'+id).classList.toggle('bad'
 /** Mini-mémoire : pré-remplit avec le dernier exercice de la machine. */
 function prefillFromLast(id){
   clearConfigs(); clearErrors();
-  const cardio=isCardioMachine(id), x=lastForMachine(id);
+  if(!id) return;                                       // aucune machine choisie
+  const cardio=isCardioMachine(id), x=lastSuccessForMachine(id);   // dernier RÉUSSI (cohérent avec les records)
   if(cardio){
     if(x){ document.getElementById('f-prog').value=x.programme||'Manuel'; document.getElementById('f-level').value=x.niveau??''; document.getElementById('f-dur').value=x.duree??30;
       document.getElementById('f-rpm').value=x.rpm??''; document.getElementById('f-dist').value=x.distance??'';
@@ -1454,11 +1593,23 @@ function prefillFromLast(id){
   }
 }
 
+/** Affiche (ou masque) le rappel du dernier commentaire noté pour la machine. */
+function showLastComment(id){
+  const el=document.getElementById('last-comment');
+  const x=id?lastForMachine(id):null;
+  if(x && x.comment){
+    el.innerHTML=`<span class="who">Dernier commentaire · ${fmtDate(x.date)}</span>${esc(x.comment)}`;
+    el.style.display='block';
+  } else { el.innerHTML=''; el.style.display='none'; }
+}
+
 /** Ouvre le formulaire (nouvel exercice ou édition). */
 function openForm(opts){
   opts=opts||{}; editingId=opts.id||null; clearErrors();
   const sel=document.getElementById('f-machine');
-  sel.innerHTML=[...state.machines].sort((a,b)=>a.name.localeCompare(b.name,'fr',{sensitivity:'base'})).map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('');
+  // 1re option VIDE (oblige un choix conscient), puis machines triées A→Z
+  sel.innerHTML='<option value="" selected>— Choisir une machine —</option>'+
+    [...state.machines].sort((a,b)=>a.name.localeCompare(b.name,'fr',{sensitivity:'base'})).map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('');
 
   if(editingId){
     // --- Édition : on garde la date d'origine (lecture seule) ---
@@ -1467,7 +1618,7 @@ function openForm(opts){
     document.getElementById('date-edit').style.display='none';
     document.getElementById('date-readonly').style.display='block';
     document.getElementById('f-date-label').textContent=fmtDateFull(x.date);
-    sel.value=x.machineId; setFormMode(x.machineId);
+    sel.value=x.machineId; setFormMode(x.machineId); showLastComment(x.machineId);
     if(cardio){
       document.getElementById('f-prog').value=x.programme||'Manuel'; document.getElementById('f-level').value=x.niveau??''; document.getElementById('f-dur').value=x.duree??30;
       document.getElementById('f-rpm').value=x.rpm??''; document.getElementById('f-dist').value=x.distance??'';
@@ -1485,20 +1636,23 @@ function openForm(opts){
     document.getElementById('date-readonly').style.display='none';
     document.getElementById('date-edit').style.display='block';
     const fdate=document.getElementById('f-date'); fdate.max=todayISO(); fdate.value=opts.date||todayISO();
-    if(opts.machineId) sel.value=opts.machineId;
+    if(opts.machineId){ sel.value=opts.machineId; }        // sinon : option vide par défaut
     setFormMode(sel.value); setStatus('success'); document.getElementById('f-comment').value='';
-    prefillFromLast(sel.value);
+    prefillFromLast(sel.value); showLastComment(sel.value);
     document.getElementById('f-delete').style.display='none';
   }
 
   document.getElementById('sheet-bg').classList.add('open');
-  setTimeout(()=>document.getElementById('sheet').classList.add('open'),10);
+  const sheet=document.getElementById('sheet');
+  sheet.scrollTop=0;                                        // toujours ouvrir la feuille en haut
+  setTimeout(()=>{ sheet.classList.add('open'); sheet.scrollTop=0; },10);
 }
 function closeForm(){ document.getElementById('sheet').classList.remove('open'); setTimeout(()=>document.getElementById('sheet-bg').classList.remove('open'),260); }
 
 /** Valide puis enregistre l'exercice (création ou modification). */
 function saveExercise(){
   const machineId=document.getElementById('f-machine').value, cardio=isCardioMachine(machineId);
+  if(!machineId){ toast('Choisis d\'abord une machine'); return; }
   const comment=document.getElementById('f-comment').value.trim();
   const wasEditing=!!editingId;
   let data, isPR=false;
@@ -1538,11 +1692,12 @@ function saveExercise(){
     if(!ok){ toast('Vérifie les champs en rouge'); return; }
     const configs=[...document.querySelectorAll('#f-configs input')].map(i=>i.value.trim()).filter(Boolean).slice(0,MAX_CONFIGS);
     const wval=Math.round(w*100)/100;
-    // Détection d'un record de poids (vs les exercices précédents de cette machine)
+    // Détection d'un record de poids (vs les exercices RÉUSSIS précédents ;
+    // un exercice échoué ne peut jamais être un record)
     let priorMax=null;
-    const ws=state.exercises.filter(e=>e.machineId===machineId&&e.id!==editingId).map(e=>Number(e.weight));
+    const ws=state.exercises.filter(e=>e.machineId===machineId&&e.id!==editingId&&e.status!=='fail').map(e=>Number(e.weight));
     if(ws.length) priorMax=Math.max(...ws);
-    isPR = priorMax!=null && wval>priorMax && wval>0;
+    isPR = curStatus!=='fail' && priorMax!=null && wval>priorMax && wval>0;
     data={machineId,weight:wval,sets,reps,status:curStatus,configs,comment};
   }
 
