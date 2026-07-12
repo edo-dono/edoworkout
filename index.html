@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="edoWorkout">
 <meta name="theme-color" content="#0b0c0e">
+<meta name="description" content="edoWorkout — suivi personnel de musculation et cardio : séances, progression, records, programmes, hors-ligne (PWA).">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icon-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
@@ -42,6 +43,9 @@
      couvrir tout l'écran, même quand la page est courte. */
   html{
     margin:0; padding:0; color-scheme:dark; min-height:100dvh;
+    /* touch-action:manipulation = défilement + pincement autorisés,
+       zoom au DOUBLE APPUI désactivé (évite les zooms accidentels sur les boutons) */
+    touch-action:manipulation;
     background-color:#0c0e11;                        /* couleur de base : évite tout "trou" noir si le dégradé ne couvre pas */
     background-image:
       radial-gradient(60vw 60vw at 12% 4%, rgba(197,242,74,.34), transparent 60%),
@@ -58,6 +62,9 @@
      vide/noir quand une page est courte (ex : "Aujourd'hui" après enregistrement). */
   #app{min-height:calc(100dvh - 96px - var(--safe-top) - var(--safe-bot));}
   button,input,select,textarea{font-family:inherit;}
+  /* touch-action ne s'hérite pas : on l'applique à tout élément pour
+     supprimer le zoom au double appui partout (le pincement reste permis). */
+  *{touch-action:manipulation;}
   select option{background:#1b1d21; color:var(--text);}
 
   /* ---- En-tête (bannière) : nom de l'app centré ---- */
@@ -296,6 +303,11 @@
   .lastcmt{margin-top:8px; font-size:13px; line-height:1.45; color:var(--text); background:var(--accent-dim);
     border:1px solid rgba(197,242,74,.25); border-left:3px solid var(--accent); border-radius:10px; padding:9px 11px;}
   .lastcmt .who{display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:var(--accent); margin-bottom:3px;}
+  .lastcmt .lcrow{display:flex; align-items:flex-start; gap:10px;}
+  .lastcmt .lcbody{flex:1; min-width:0; overflow-wrap:anywhere;}
+  .lastcmt .lccopy{flex:none; background:rgba(255,255,255,.08); border:1px solid var(--hair); color:var(--text);
+    border-radius:9px; padding:7px 10px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;}
+  .lastcmt .lccopy:active{transform:scale(.95);}
   /* Barre de recherche (onglet Machines) */
   .searchwrap{position:relative; margin:14px 0 4px;}
   .searchwrap svg{position:absolute; left:14px; top:50%; transform:translateY(-50%); width:17px; height:17px; color:var(--muted); pointer-events:none;}
@@ -303,13 +315,12 @@
   .searchwrap .clear{position:absolute; right:8px; top:50%; transform:translateY(-50%); width:32px; height:32px; border-radius:50%;
     background:rgba(255,255,255,.08); border:none; color:var(--muted); font-size:14px; cursor:pointer; display:none;}
   .searchwrap.has .clear{display:block;}
-  /* Cartes de programme */
-  .progcard{display:flex; align-items:center; justify-content:space-between; gap:10px;}
-  .progcard .pinfo .name{font-size:16px; font-weight:700;}
-  .progcard .pinfo .meta{font-size:12.5px; color:var(--muted); margin-top:3px; line-height:1.45;}
-  .progcard .go{flex:none; background:var(--accent); color:#10130a; border:none; border-radius:12px; padding:10px 14px; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap;}
-  .progcard .go:disabled{opacity:.4;}
-  .progcard .go:active{transform:scale(.95);}
+  /* Sélecteur de programme (liste déroulante + bouton Lancer) */
+  .progrow{display:flex; gap:10px; align-items:stretch;}
+  .progrow select{flex:1; min-width:0;}
+  .progrow .go{flex:none; background:var(--accent); color:#10130a; border:none; border-radius:13px; padding:0 18px; font-size:14px; font-weight:700; cursor:pointer; white-space:nowrap;}
+  .progrow .go:active{transform:scale(.96);}
+  #program-detail{font-size:12.5px; color:var(--muted); margin-top:9px; line-height:1.5;}
   .seg{display:flex; gap:8px;}
   .seg button{flex:1; background:rgba(255,255,255,.06); border:1px solid var(--hair); color:var(--muted); border-radius:12px;
     padding:11px 6px; font-size:14px; font-weight:600; cursor:pointer;}
@@ -421,7 +432,7 @@
   <div class="field" id="date-edit"><label>Date de la séance</label><input type="date" id="f-date"></div>
   <div class="field" id="date-readonly" style="display:none"><label>Séance</label><div class="readonly" id="f-date-label"></div></div>
   <div class="field"><label>Machine</label><select id="f-machine"></select>
-    <div class="lastcmt" id="last-comment" style="display:none"></div></div>
+    <div id="last-comment" style="display:none"></div></div>
 
   <!-- Champs MUSCULATION -->
   <div id="fields-strength">
@@ -534,8 +545,8 @@
    ================================================================ */
 
 /* ===== Constantes de version ===== */
-const VERSION='alpha-v1.5';
-const VERSION_DATE='4 juillet 2026';
+const VERSION='alpha-v1.6';
+const VERSION_DATE='8 juillet 2026';
 const DATA_VERSION=2;                                 // version du schéma de données (migrations one-shot)
 const MAX_CONFIGS=3;                                  // configs max par exercice muscu
 const CARDIO_PROGRAMS=['Manuel','Puissance','Fréquence cardiaque','Colline','Objectif +','Test de forme'];
@@ -549,7 +560,7 @@ const ICON_SVG='<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"
 const ICON_URL='data:image/svg+xml,'+encodeURIComponent(ICON_SVG);
 
 /* ===== Catégories / groupes musculaires ===== */
-const GROUPS=['Jambes','Pectoraux','Dos','Épaules','Bras','Abdos','Cardio','Autre'];
+/* Groupe musculaire par défaut selon le nom (utilisé au premier import des données). */
 
 // Groupe par défaut selon le nom (utilisé pour migrer d'anciennes données)
 const GROUP_BY_NAME={
@@ -852,10 +863,19 @@ function lastSuccessForMachine(id){
   return l[0]||lastForMachine(id);
 }
 function ex1rm(x){ return Math.round(Number(x.weight)*(1+Number(x.reps)/30)); } // 1RM estimé (Epley)
-function machineMaxWeight(id){ const ws=state.exercises.filter(x=>x.machineId===id).map(x=>Number(x.weight)); return ws.length?Math.max(...ws):null; }
-/** Poids max en ne comptant QUE les exercices réussis (référence des records). */
-function machineMaxWeightSuccess(id){ const ws=state.exercises.filter(x=>x.machineId===id&&x.status!=='fail').map(x=>Number(x.weight)); return ws.length?Math.max(...ws):null; }
-function machineCount(id){ return state.exercises.filter(x=>x.machineId===id).length; }
+/** Clé de tri chronologique d'un exercice : date, puis ordre dans la séance, puis id. */
+function chronoKey(x){ return x.date+'|'+String(x.order??0).padStart(6,'0')+'|'+x.id; }
+/** Un exercice est un record s'il est réussi ET strictement plus lourd que tous
+    les exercices réussis qui le PRÉCÈDENT chronologiquement sur la machine.
+    Égaler un poids déjà soulevé n'est donc pas un record. */
+function isRecordExercise(x){
+  if(x.status==='fail' || !(Number(x.weight)>0)) return false;
+  const k=chronoKey(x);
+  const prior=state.exercises
+    .filter(e=>e.machineId===x.machineId && e.id!==x.id && e.status!=='fail' && chronoKey(e)<k)
+    .map(e=>Number(e.weight));
+  return prior.length>0 && Number(x.weight)>Math.max(...prior);
+}
 /** Nombre d'exercices par groupe musculaire pour la semaine en cours. */
 function weekGroupCounts(){
   const ws=startOfWeek(new Date()), a=isoDate(ws), e=new Date(ws); e.setDate(e.getDate()+6); const b=isoDate(e);
@@ -991,9 +1011,8 @@ function exerciseCard(x,opts){
       ${x.comment?`<div class="cmt">${esc(x.comment)}</div>`:''}</div>`;
   }
   // --- Musculation ---
-  // Record : jamais sur un exercice échoué, et comparé aux seuls exercices réussis
-  const max=machineMaxWeightSuccess(x.machineId);
-  const isPR = x.status!=='fail' && max!=null && machineCount(x.machineId)>=2 && Number(x.weight)===max && Number(x.weight)>0;
+  // Record : strictement plus lourd que tous les réussis précédents (égalité ≠ record)
+  const isPR=isRecordExercise(x);
   const configs=(x.configs||[]).map((c,i)=>`<span class="tag"><b>Config ${i+1}</b> · ${esc(c)}</span>`).join('');
   const w=(x.weight!==''&&x.weight!=null)?x.weight+' kg':'';
   return `<div class="card ex" onclick="editExercise('${x.id}')">${head}
@@ -1096,47 +1115,39 @@ function machineCardHTML(m){
 
 /** Onglet "Machines" : liste rangée par catégorie/groupe. */
 let machineQuery='';                                   // filtre de recherche (onglet Machines)
-function renderMachines(){
+/** HTML de la liste des machines filtrée : catégories A→Z, machines A→Z. */
+function machineListHTML(){
   const q=machineQuery.trim().toLowerCase();
-  // Filtre par nom OU catégorie ; catégories triées A→Z, machines triées A→Z
   const match=m=>!q || (m.name||'').toLowerCase().includes(q) || (m.group||'Autre').toLowerCase().includes(q);
   const pool=state.machines.filter(match);
+  if(!pool.length) return `<div class="card"><div class="empty">Aucune machine ne correspond à « ${esc(machineQuery)} ».</div></div>`;
   const groups=[...new Set(pool.map(m=>m.group||'Autre'))].sort((a,b)=>a.localeCompare(b,'fr',{sensitivity:'base'}));
-  let html='';
-  groups.forEach(g=>{
+  return groups.map(g=>{
     const ms=pool.filter(m=>(m.group||'Autre')===g).sort((a,b)=>a.name.localeCompare(b.name,'fr',{sensitivity:'base'}));
-    if(!ms.length) return;
-    html+=`<h2>${g}</h2><div class="mlist">`+ms.map(machineCardHTML).join('')+`</div>`;
-  });
-  if(!pool.length) html=`<div class="card"><div class="empty">Aucune machine ne correspond à « ${esc(machineQuery)} ».</div></div>`;
+    return `<h2>${esc(g)}</h2><div class="mlist">`+ms.map(machineCardHTML).join('')+`</div>`;
+  }).join('');
+}
+/** Onglet "Machines" : barre de recherche + liste groupée. */
+function renderMachines(){
+  const q=machineQuery.trim();
   setView(`<h1>Machines</h1><p class="sub">Regroupées par catégorie · touche pour l'historique et la progression</p>
     <div class="searchwrap${q?' has':''}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input type="search" id="machine-search" placeholder="Rechercher une machine…" autocomplete="off" value="${esc(machineQuery)}">
-      <button class="clear" onclick="clearMachineSearch()">✕</button>
-    </div>${html}<div style="height:70px"></div>`);
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input type="search" id="machine-search" placeholder="Rechercher une machine…" autocomplete="off" value="${esc(machineQuery)}" aria-label="Rechercher une machine">
+      <button class="clear" onclick="clearMachineSearch()" aria-label="Effacer la recherche">✕</button>
+    </div>${machineListHTML()}<div style="height:70px"></div>`);
   // Filtrage à la frappe SANS re-rendre le champ (pour ne pas perdre le focus/clavier)
   const inp=document.getElementById('machine-search');
   inp.addEventListener('input',()=>{ machineQuery=inp.value; refreshMachineList(); });
 }
 /** Re-rend uniquement la liste (le champ de recherche garde le focus). */
 function refreshMachineList(){
-  const q=machineQuery.trim().toLowerCase();
-  const match=m=>!q || (m.name||'').toLowerCase().includes(q) || (m.group||'Autre').toLowerCase().includes(q);
-  const pool=state.machines.filter(match);
-  const groups=[...new Set(pool.map(m=>m.group||'Autre'))].sort((a,b)=>a.localeCompare(b,'fr',{sensitivity:'base'}));
-  let html='';
-  groups.forEach(g=>{
-    const ms=pool.filter(m=>(m.group||'Autre')===g).sort((a,b)=>a.name.localeCompare(b.name,'fr',{sensitivity:'base'}));
-    if(!ms.length) return;
-    html+=`<h2>${g}</h2><div class="mlist">`+ms.map(machineCardHTML).join('')+`</div>`;
-  });
-  if(!pool.length) html=`<div class="card"><div class="empty">Aucune machine ne correspond à « ${esc(machineQuery)} ».</div></div>`;
-  const wrap=document.querySelector('.searchwrap'); if(wrap) wrap.classList.toggle('has',!!q);
+  const wrap=document.querySelector('.searchwrap'); if(!wrap) return;
+  wrap.classList.toggle('has',!!machineQuery.trim());
   // Remplace tout ce qui suit la barre de recherche
-  let n=wrap?wrap.nextElementSibling:null;
+  let n=wrap.nextElementSibling;
   while(n){ const next=n.nextElementSibling; n.remove(); n=next; }
-  if(wrap) wrap.insertAdjacentHTML('afterend',html+'<div style="height:70px"></div>');
+  wrap.insertAdjacentHTML('afterend',machineListHTML()+'<div style="height:70px"></div>');
 }
 function clearMachineSearch(){ machineQuery=''; const i=document.getElementById('machine-search'); if(i){ i.value=''; i.focus(); } refreshMachineList(); }
 
@@ -1216,7 +1227,7 @@ function openMachine(id){
   }
 
   const body=ss.length
-    ? `<h2>Historique</h2>`+groupByDate(ss).map(g=>`<div class="dayhead"><span class="d">${fmtDate(g.date)}</span></div>${g.items.map(exerciseCard).join('')}`).join('')
+    ? `<h2>Historique</h2>`+groupByDate(ss).map(g=>`<div class="dayhead"><span class="d">${fmtDate(g.date)}</span></div>${g.items.map(x=>exerciseCard(x)).join('')}`).join('')
     : `<div class="card"><div class="empty">Pas encore d'exercice pour cette machine.</div></div>`;
   const repeatBtn=lastForMachine(id)?`<button class="btn ghost sm" style="flex:1" onclick="repeatLastForMachine('${id}')">↻ Répéter</button>`:'';
 
@@ -1227,7 +1238,9 @@ function openMachine(id){
     <h1>${esc(m.name)}</h1><p class="sub">${cardio?'Cardio':esc(m.group||'Autre')} · ${ss.length} ${cardio?'séance':'exercice'}${ss.length>1?'s':''}</p>
     <div class="row" style="gap:10px;margin:14px 0 4px">
       <button class="btn sm" style="flex:1" onclick="openForm({machineId:'${id}'})">＋ Nouvel exercice</button>${repeatBtn}
-    </div>${chart}${records}${body}`;
+    </div>
+    ${lastCommentHTML(id,false)}
+    ${chart}${records}${body}`;
   initCharts(document.getElementById('screen-machine-inner'));
   screen.scrollTop=0;                                 // afficher le haut de l'écran
   screen.classList.add('open');
@@ -1301,14 +1314,15 @@ function cloneForToday(x){
     return {id:uid(),date:d,order:nextOrder(d),machineId:x.machineId,programme:x.programme,niveau:x.niveau,duree:x.duree,rpm:x.rpm??'',distance:x.distance??'',incline:x.incline??'',speed:x.speed??'',comment:''};
   return {id:uid(),date:d,order:nextOrder(d),machineId:x.machineId,weight:x.weight,sets:x.sets,reps:x.reps,status:'success',configs:(x.configs||[]).slice(0,MAX_CONFIGS),comment:''};
 }
-/** Variante "Répéter" depuis la fiche machine : ne reprend QUE les champs
-    obligatoires, laisse vides les champs facultatifs (tr/min, distance,
-    inclinaison, vitesse, configs) qui changent souvent d'un exercice à l'autre. */
+/** Variante "Répéter" (fiche machine, programmes) : reprend les champs
+    obligatoires ET les configurations (réglages de machine, stables d'une
+    séance à l'autre) ; laisse vides les mesures qui varient (tr/min,
+    distance, inclinaison, vitesse). */
 function cloneMandatory(x){
   const d=todayISO();
   if(isCardioMachine(x.machineId))
     return {id:uid(),date:d,order:nextOrder(d),machineId:x.machineId,programme:x.programme,niveau:x.niveau,duree:x.duree,rpm:'',distance:'',incline:'',speed:'',comment:''};
-  return {id:uid(),date:d,order:nextOrder(d),machineId:x.machineId,weight:x.weight,sets:x.sets,reps:x.reps,status:'success',configs:[],comment:''};
+  return {id:uid(),date:d,order:nextOrder(d),machineId:x.machineId,weight:x.weight,sets:x.sets,reps:x.reps,status:'success',configs:(x.configs||[]).slice(0,MAX_CONFIGS),comment:''};
 }
 function repeatLastSession(){
   const days=[...new Set(state.exercises.map(x=>x.date))].filter(d=>d<todayISO()).sort();
@@ -1353,9 +1367,11 @@ function machineForProgram(name){
   key=PROGRAM_ALIASES[key]||key;
   return state.machines.find(m=>baseName(m.name)===key)||null;
 }
-/** Applique un programme : crée les exercices d'AUJOURD'HUI dans l'ordre du programme. */
-function applyProgram(idx){
-  const p=PROGRAMS[idx]; if(!p) return;
+/** Programmes triés par ordre alphabétique (règle d'affichage permanente). */
+function sortedPrograms(){ return [...PROGRAMS].sort((a,b)=>a.name.localeCompare(b.name,'fr',{sensitivity:'base'})); }
+/** Applique un programme par son nom : crée les exercices d'AUJOURD'HUI dans l'ordre. */
+function applyProgram(name){
+  const p=PROGRAMS.find(pr=>pr.name===name); if(!p) return;
   const found=[], missing=[];
   p.machines.forEach(n=>{ const m=machineForProgram(n); if(m) found.push(m); else missing.push(n); });
   if(!found.length){ toast('Aucune machine du programme n\'existe'); return; }
@@ -1374,15 +1390,33 @@ function applyProgram(idx){
   if(already) askConfirm('Ajouter les '+found.length+' exercices du programme « '+p.name+' » à la séance d\'aujourd\'hui ?',doIt,'Ajouter');
   else doIt();
 }
-/** Cartes des programmes (onglet Aujourd'hui). */
+/** Lance le programme sélectionné dans la liste déroulante. */
+function launchSelectedProgram(){
+  const name=document.getElementById('program-select').value;
+  if(!name){ toast('Choisis d\'abord un programme'); return; }
+  applyProgram(name);
+}
+/** Sélecteur de programme (onglet Aujourd'hui) : liste déroulante triée A→Z. */
 function programsHTML(){
-  return PROGRAMS.map((p,i)=>{
-    const names=p.machines.map(n=>{ const m=machineForProgram(n); return m?esc(m.name):esc(n)+' ⚠'; });
-    return `<div class="card progcard">
-      <div class="pinfo"><div class="name">${esc(p.name)}</div><div class="meta">${p.machines.length} exercices · ${names.join(' · ')}</div></div>
-      <button class="go" onclick="applyProgram(${i})">Lancer</button>
-    </div>`;
-  }).join('');
+  const opts=sortedPrograms().map(p=>`<option value="${esc(p.name)}">${esc(p.name)} · ${p.machines.length} exercices</option>`).join('');
+  return `<div class="card">
+    <label>Lancer un programme pré-enregistré</label>
+    <div class="progrow">
+      <select id="program-select" onchange="showProgramDetail()"><option value="" selected>— Choisir un programme —</option>${opts}</select>
+      <button class="go" onclick="launchSelectedProgram()">Lancer</button>
+    </div>
+    <div class="meta" id="program-detail" style="display:none"></div>
+  </div>`;
+}
+/** Affiche la composition du programme sélectionné sous la liste. */
+function showProgramDetail(){
+  const name=document.getElementById('program-select').value;
+  const el=document.getElementById('program-detail');
+  const p=PROGRAMS.find(pr=>pr.name===name);
+  if(!p){ el.style.display='none'; el.textContent=''; return; }
+  const names=p.machines.map(n=>{ const m=machineForProgram(n); return m?esc(m.name):esc(n)+' ⚠'; });
+  el.innerHTML=names.join(' · ');
+  el.style.display='block';
 }
 
 /* ===== Minuteur de repos (lancé manuellement via la bulle ⏱) =====
@@ -1593,14 +1627,36 @@ function prefillFromLast(id){
   }
 }
 
-/** Affiche (ou masque) le rappel du dernier commentaire noté pour la machine. */
+/** Dernier commentaire noté sur une machine (réussi ou non : la note la plus
+    récente est la plus utile, ex. « trop lourd, redescendre »). */
+function lastCommentFor(id){
+  const l=state.exercises.filter(x=>x.machineId===id && (x.comment||'').trim())
+    .sort((a,b)=>chronoKey(b).localeCompare(chronoKey(a)));
+  return l[0]||null;
+}
+/** HTML de l'encart « dernier commentaire » (withCopy : bouton de reprise dans le formulaire). */
+function lastCommentHTML(id,withCopy){
+  const x=id?lastCommentFor(id):null;
+  if(!x) return '';
+  return `<div class="lastcmt"><div class="lcrow">
+    <div class="lcbody"><span class="who">Dernier commentaire · ${fmtDate(x.date)}</span>${esc(x.comment)}</div>
+    ${withCopy?`<button type="button" class="lccopy" onclick="copyLastComment()" aria-label="Reprendre ce commentaire">⧉ Copier</button>`:''}
+  </div></div>`;
+}
+/** Met à jour l'encart du formulaire pour la machine choisie. */
 function showLastComment(id){
   const el=document.getElementById('last-comment');
-  const x=id?lastForMachine(id):null;
-  if(x && x.comment){
-    el.innerHTML=`<span class="who">Dernier commentaire · ${fmtDate(x.date)}</span>${esc(x.comment)}`;
-    el.style.display='block';
-  } else { el.innerHTML=''; el.style.display='none'; }
+  const html=lastCommentHTML(id,true);
+  el.innerHTML=html;
+  el.style.display=html?'block':'none';
+}
+/** Recopie le dernier commentaire de la machine choisie dans le champ Commentaires. */
+function copyLastComment(){
+  const id=document.getElementById('f-machine').value;
+  const x=id?lastCommentFor(id):null;
+  if(!x) return;
+  document.getElementById('f-comment').value=x.comment;
+  toast('Commentaire repris ✓');
 }
 
 /** Ouvre le formulaire (nouvel exercice ou édition). */
