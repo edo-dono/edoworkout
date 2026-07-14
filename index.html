@@ -457,7 +457,7 @@
 <!-- Barre d'onglets -->
 <div class="tabbar">
   <button class="tab active" id="tab-today" onclick="goTab('today')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11M3 3l1 1M20 20l1 1M18 22l4-4M2 6l4-4M7 17l-5 5M22 7l-5-5"/></svg>Aujourd'hui</button>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c1 3 4 4.5 4 8a4 4 0 0 1-8 0c0-1 .3-1.8.8-2.5C9 8 9 6 12 2z"/><path d="M8.5 10c-1.5 1.3-2.5 3.2-2.5 5.2a6 6 0 0 0 12 0c0-2.6-1.4-4.4-2.8-6"/></svg>Aujourd'hui</button>
   <button class="tab" id="tab-week" onclick="goTab('week')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>Séances</button>
   <button class="tab" id="tab-machines" onclick="goTab('machines')">
@@ -594,8 +594,8 @@
    ================================================================ */
 
 /* ===== Constantes de version ===== */
-const VERSION='alpha-v1.8';
-const VERSION_DATE='13 juillet 2026';
+const VERSION='alpha-v1.9';
+const VERSION_DATE='14 juillet 2026';
 const DATA_VERSION=4;                                 // version du schéma de données (migrations one-shot)
 const TRASH_RETENTION_DAYS=30;                        // durée de conservation de la corbeille
 const MAX_CONFIGS=3;                                  // configs max par exercice muscu
@@ -1169,7 +1169,7 @@ function renderToday(){
   const hasPast=state.exercises.some(x=>x.date<t);
   const body=items.length
     ? items.map(x=>exerciseCard(x,{reorder:true})).join('')
-    : `<div class="card"><div class="empty">Pas encore d'exercice aujourd'hui.<br>Appuie sur « <span style="color:var(--accent); font-weight:700">＋ Nouvel exercice</span> » pour démarrer ta séance 🔥</div></div>`;
+    : `<div class="card"><div class="empty">Pas encore d'exercice aujourd'hui.</div></div>`;
   setView(`<h1>Aujourd'hui</h1><p class="sub">${fmtDateFull(t)}</p>
     ${(items.length===0 && hasPast)?`<button class="btn ghost" style="margin-top:12px" onclick="repeatLastSession()">↻ Répéter la dernière séance</button>`:''}
     ${items.length===0?`<h2>Programmes</h2>${programsHTML()}`:''}
@@ -1621,6 +1621,12 @@ const PROGRAMS=[
    machines:['Leg press','Leg extension','Hip adduction','Shoulder press','Chest press','Pectoral fly','Abdominal']},
   {name:'PKF2-Nocardio',
    machines:['Leg press','Seated leg curl','Hip abduction','Pulldown','Rear deltoid','Biceps curl']},
+  // Perte de poids : haut du corps + 2×20 min cardio (Rameur en début, Tapis en fin)
+  {name:'PKF-Edo-Upper-C',
+   machines:['Rameur','Chest press','Pulldown','Row','Shoulder press','Rear deltoid','Biceps curl','Abdominal','Tapis de course']},
+  // Perte de poids : bas du corps + 2×20 min cardio (Vélo d'entraînement puis Vélo couché)
+  {name:'PKF-Edo-Lower-C',
+   machines:["Vélo d'entraînement",'Leg press','Leg extension','Seated leg curl','Hip adduction','Hip abduction','Abdominal','Vélo couché']},
 ];
 // Alias (ancien nom → nom de base actuel) pour la robustesse aux renommages
 const PROGRAM_ALIASES={'leg curl':'seated leg curl','pull down':'pulldown'};
