@@ -1,4 +1,4 @@
-const CACHE='edoworkout-alpha-v1.7';
+const CACHE='edoworkout-alpha-v1.8';
 // Coquille de l'app (les photos sont mises en cache à la volée, pas ici,
 // pour qu'une photo absente n'empêche pas la mise en cache du reste).
 const ASSETS=['./','./index.html','./manifest.webmanifest','./icon-180.png','./icon-192.png','./icon-512.png','https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap'];
