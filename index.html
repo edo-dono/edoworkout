@@ -121,11 +121,15 @@
   .day .dnum{font-size:10px; color:var(--muted);}
 
   /* ---- Régularité (5 dernières semaines) ---- */
-  .histweek{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
-  .histweek .wk{font-size:10.5px; color:var(--muted); width:92px; flex:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  /* Régularité : grille élégante, centrée dans la carte */
+  .histwrap{display:flex; flex-direction:column; align-items:center; gap:11px;}
+  .histweek{display:flex; align-items:center; gap:14px; margin:0;}
+  .histweek .wk{font-size:11px; color:var(--muted); width:86px; flex:none; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .histweek .wk.cur{color:var(--accent); font-weight:700;}
-  .minidots{display:flex; gap:6px;}
-  .mini{width:14px; height:14px; border-radius:4px; background:rgba(255,255,255,.06);}
+  .minidots{display:flex; gap:8px;}
+  .mini{width:16px; height:16px; border-radius:5px; background:rgba(255,255,255,.07); transition:transform .12s;}
+  .mini.done:active{transform:scale(.85);}
+  .histhead{margin-bottom:2px;}
   .mini.done{background:var(--accent);}
 
   /* ---- Équilibre par groupe musculaire (barres) ---- */
@@ -316,12 +320,23 @@
   .lastcmt.muted-box .who{color:var(--muted);}
   .tipsrc{display:block; margin-top:12px; padding-top:10px; border-top:1px solid var(--hair); font-size:12.5px; color:var(--muted);}
   .tipsrc a{color:var(--accent); text-decoration:underline;}
+  .lcst{font-size:10.5px; font-weight:800; padding:2px 7px; border-radius:8px; margin-left:6px; letter-spacing:.3px; vertical-align:1px;}
+  .lcst.ok{background:var(--accent-dim); color:var(--accent);}
+  .lcst.ko{background:rgba(255,107,107,.15); color:var(--red);}
+  .lcst.nd{background:rgba(255,255,255,.1); color:var(--muted);}
+  .streakbox{margin-top:8px; font-size:13px; color:var(--text); background:rgba(255,255,255,.05);
+    border:1px solid var(--hair); border-radius:10px; padding:9px 11px;}
+  .streakbox b{color:var(--accent);}
+  /* Poids de corps : formulaire centré */
+  .bwform{display:flex; gap:10px; justify-content:center; align-items:stretch; max-width:340px; margin:0 auto;}
+  .bwform input{flex:1; min-width:0; text-align:center;}
+  .bwform .btn{flex:none; width:auto;}
   .favbtn{flex:none; width:42px; height:42px; border-radius:12px; background:rgba(255,255,255,.06); border:1px solid var(--hair);
     color:var(--muted); font-size:21px; cursor:pointer; margin-top:4px;}
   .favbtn.on{color:var(--amber); border-color:rgba(245,196,81,.45); background:rgba(245,196,81,.12);}
   .favbtn:active{transform:scale(.92);}
   .histhead .minidots{align-items:center;}
-  .minilbl{width:14px; text-align:center; font-size:10.5px; font-weight:700; color:var(--muted);}
+  .minilbl{width:16px; text-align:center; font-size:10.5px; font-weight:700; color:var(--muted);}
   .minilbl.sat{color:#4a96f2;}
   .minilbl.sun{color:#f87171;}
   .mini.done{cursor:pointer;}
@@ -439,7 +454,7 @@
 <div class="restbar" id="restbar">
   <div class="rrow">
     <div><div class="rlabel">Repos</div><div class="rtime" id="rest-time">60 s</div></div>
-    <div class="rbtns"><button onclick="addRest(15)">+15 s</button><button onclick="stopRest()">Passer</button></div>
+    <div class="rbtns"><button onclick="addRest(-15)">−15 s</button><button onclick="addRest(15)">+15 s</button><button onclick="stopRest()">Passer</button></div>
   </div>
   <div class="restprog"><div id="rest-fill"></div></div>
 </div>
@@ -457,7 +472,7 @@
 <!-- Barre d'onglets -->
 <div class="tabbar">
   <button class="tab active" id="tab-today" onclick="goTab('today')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c1 3 4 4.5 4 8a4 4 0 0 1-8 0c0-1 .3-1.8.8-2.5C9 8 9 6 12 2z"/><path d="M8.5 10c-1.5 1.3-2.5 3.2-2.5 5.2a6 6 0 0 0 12 0c0-2.6-1.4-4.4-2.8-6"/></svg>Aujourd'hui</button>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.6M12 19.4V22M2 12h2.6M19.4 12H22M4.9 4.9l1.9 1.9M17.2 17.2l1.9 1.9M4.9 19.1l1.9-1.9M17.2 6.8l1.9-1.9"/></svg>Aujourd'hui</button>
   <button class="tab" id="tab-week" onclick="goTab('week')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>Séances</button>
   <button class="tab" id="tab-machines" onclick="goTab('machines')">
@@ -594,9 +609,9 @@
    ================================================================ */
 
 /* ===== Constantes de version ===== */
-const VERSION='alpha-v1.9';
-const VERSION_DATE='14 juillet 2026';
-const DATA_VERSION=4;                                 // version du schéma de données (migrations one-shot)
+const VERSION='alpha-v1.10';
+const VERSION_DATE='22 juillet 2026';
+const DATA_VERSION=5;                                 // version du schéma de données (migrations one-shot)
 const TRASH_RETENTION_DAYS=30;                        // durée de conservation de la corbeille
 const MAX_CONFIGS=3;                                  // configs max par exercice muscu
 const CARDIO_PROGRAMS=['Manuel','Puissance','Fréquence cardiaque','Colline','Objectif +','Test de forme'];
@@ -621,7 +636,9 @@ const ICON_URL='data:image/svg+xml,'+encodeURIComponent(ICON_SVG);
 const GROUP_BY_NAME={
   'leg press':'Jambes','leg extension':'Jambes','leg curl':'Jambes','seated leg curl':'Jambes','hip abduction':'Jambes','hip adduction':'Jambes',
   'chest press':'Pectoraux','pectoral fly':'Pectoraux','pull down':'Dos','pulldown':'Dos','row':'Dos',
-  'shoulder press':'Épaules','incline press':'Épaules','rear deltoid':'Épaules','biceps curl':'Bras','abdominal':'Abdos',
+  'shoulder press':'Épaules',
+  'chest press (poignée vers le haut)':'Pectoraux','incline press':'Épaules','rear deltoid':'Épaules','biceps curl':'Bras',
+  'triceps extension':'Bras','abdominal':'Abdos',
   'vélo elliptique':'Cardio','escaliers mécaniques':'Cardio',"vélo d'appartement":'Cardio',"vélo d'entraînement":'Cardio','rameur':'Cardio','tapis de course':'Cardio','vélo couché':'Cardio','vélo de cycling':'Cardio','air bike':'Cardio'
 };
 
@@ -633,7 +650,8 @@ const MACHINE_ART={
   'seated leg curl':'<circle cx="28" cy="34" r="7"/><path d="M22 64 V40"/><path d="M22 64 H46"/><path d="M46 62 H62"/><path d="M62 62 L74 74"/><path d="M70 78 L78 70"/>',
   'hip abduction':'<circle cx="48" cy="24" r="7"/><path d="M48 31 V50"/><path d="M48 50 L32 72"/><path d="M48 50 L64 72"/><path d="M28 56 H40"/><path d="M56 56 H68"/>',
   'hip adduction':'<circle cx="48" cy="24" r="7"/><path d="M48 31 V50"/><path d="M48 50 L32 72"/><path d="M48 50 L64 72"/><path d="M28 56 H40"/><path d="M56 56 H68"/>',
-  'shoulder press':'<circle cx="38" cy="44" r="7"/><path d="M38 51 V70"/><path d="M30 70 H46"/><path d="M28 70 V58"/><path d="M38 54 L28 42 L26 30"/><path d="M38 54 L48 42 L50 30"/><path d="M20 30 H32"/><path d="M44 30 H56"/>',  'incline press':'<circle cx="38" cy="44" r="7"/><path d="M38 51 V70"/><path d="M30 70 H46"/><path d="M28 70 V58"/><path d="M38 54 L28 42 L26 30"/><path d="M38 54 L48 42 L50 30"/><path d="M20 30 H32"/><path d="M44 30 H56"/>',
+  'shoulder press':'<circle cx="38" cy="44" r="7"/><path d="M38 51 V70"/><path d="M30 70 H46"/><path d="M28 70 V58"/><path d="M38 54 L28 42 L26 30"/><path d="M38 54 L48 42 L50 30"/><path d="M20 30 H32"/><path d="M44 30 H56"/>',
+  'chest press (poignée vers le haut)':'<circle cx="38" cy="44" r="7"/><path d="M38 51 V70"/><path d="M30 70 H46"/><path d="M28 70 V58"/><path d="M38 54 L28 42 L26 30"/><path d="M38 54 L48 42 L50 30"/><path d="M20 30 H32"/><path d="M44 30 H56"/>',  'incline press':'<circle cx="38" cy="44" r="7"/><path d="M38 51 V70"/><path d="M30 70 H46"/><path d="M28 70 V58"/><path d="M38 54 L28 42 L26 30"/><path d="M38 54 L48 42 L50 30"/><path d="M20 30 H32"/><path d="M44 30 H56"/>',
 
   'rear deltoid':'<circle cx="48" cy="26" r="7"/><path d="M48 33 V58"/><path d="M40 70 H56"/><path d="M48 41 H26"/><path d="M48 41 H70"/><circle cx="22" cy="41" r="3"/><circle cx="74" cy="41" r="3"/>',
   'chest press':'<circle cx="28" cy="40" r="7"/><path d="M28 47 V68"/><path d="M20 68 H36"/><path d="M18 68 V54"/><path d="M28 50 H48"/><path d="M48 50 V42"/><path d="M54 38 V62"/>',
@@ -642,6 +660,7 @@ const MACHINE_ART={
   'pulldown':'<circle cx="40" cy="50" r="7"/><path d="M40 57 V72"/><path d="M32 72 H48"/><path d="M40 60 L30 46"/><path d="M40 60 L50 46"/><path d="M24 44 H56"/><path d="M40 26 V44"/>',
   'row':'<circle cx="40" cy="50" r="7"/><path d="M40 57 V72"/><path d="M32 72 H48"/><path d="M40 60 L30 46"/><path d="M40 60 L50 46"/><path d="M24 44 H56"/><path d="M40 26 V44"/>',
   'biceps curl':'<circle cx="36" cy="26" r="7"/><path d="M36 33 V62"/><path d="M30 70 H44"/><path d="M36 44 L46 52"/><path d="M46 52 L42 36"/><path d="M37 34 H47"/><path d="M39 40 H49"/>',
+  'triceps extension':'<circle cx="36" cy="26" r="7"/><path d="M36 33 V62"/><path d="M30 70 H44"/><path d="M36 44 L46 52"/><path d="M46 52 L42 36"/><path d="M37 34 H47"/><path d="M39 40 H49"/>',
   'abdominal':'<circle cx="34" cy="36" r="7"/><path d="M34 43 L44 62"/><path d="M44 62 V70"/><path d="M28 70 H50"/><path d="M26 70 V60"/><path d="M30 46 L48 54"/><path d="M30 40 L24 30"/>',
   'vélo elliptique':'<circle cx="48" cy="22" r="6"/><path d="M48 28 V50"/><path d="M48 34 L36 26"/><path d="M48 34 L60 26"/><path d="M48 50 L34 70"/><path d="M48 50 L62 70"/><ellipse cx="48" cy="78" rx="26" ry="6"/>',
   'escaliers mécaniques':'<path d="M18 78 H34 V66 H50 V54 H66 V42 H80"/><circle cx="40" cy="32" r="6"/><path d="M40 38 V54"/><path d="M40 44 L52 48"/><path d="M40 54 L32 66"/><path d="M40 54 L52 60"/>',
@@ -677,6 +696,7 @@ const MACHINE_PHOTO={
   'hip abduction':'photos/hip-abduction.jpg',
   'hip adduction':'photos/hip-abduction.jpg',
   'chest press':'photos/chest-press.jpg',
+  'chest press (poignée vers le haut)':null,   // pas la même machine physique : dessin Shoulder press
   'leg curl':'photos/leg.jpg',
   'leg extension':'photos/leg.jpg',
   'seated leg curl':'photos/leg.jpg',
@@ -687,7 +707,8 @@ const MACHINE_PHOTO={
 function machinePhotoURL(name){
   const key=(name||'').trim().toLowerCase();
   const base=key.replace(/\s*\(.*\)\s*$/,'').trim();
-  return MACHINE_PHOTO[key]||MACHINE_PHOTO[base]||null;
+  if(Object.prototype.hasOwnProperty.call(MACHINE_PHOTO,key)) return MACHINE_PHOTO[key]; // le nom exact prime (peut valoir null = pas de photo)
+  return MACHINE_PHOTO[base]||null;
 }
 /** Si une photo ne charge pas (hors-ligne), on la remplace par le tracé SVG. */
 function imgFallback(img){
@@ -719,10 +740,10 @@ const DEFAULT_MACHINES=[
   {name:'Leg press',group:'Jambes',type:'strength'},{name:'Leg extension',group:'Jambes',type:'strength'},
   {name:'Seated leg curl',group:'Jambes',type:'strength'},
   {name:'Hip abduction (vers l\'extérieur)',group:'Jambes',type:'strength'},{name:'Hip adduction (vers l\'intérieur)',group:'Jambes',type:'strength'},
-  {name:'Chest press (poignée vers l\'avant)',group:'Pectoraux',type:'strength'},{name:'Pectoral fly',group:'Pectoraux',type:'strength'},
+  {name:'Chest press (poignée vers l\'avant)',group:'Pectoraux',type:'strength'},{name:'Chest press (poignée vers le haut)',group:'Pectoraux',type:'strength'},{name:'Pectoral fly',group:'Pectoraux',type:'strength'},
   {name:'Pulldown',group:'Dos',type:'strength'},{name:'Row',group:'Dos',type:'strength'},
   {name:'Shoulder press',group:'Épaules',type:'strength'},{name:'Incline press',group:'Épaules',type:'strength'},{name:'Rear deltoid',group:'Épaules',type:'strength'},
-  {name:'Biceps curl',group:'Bras',type:'strength'},
+  {name:'Biceps curl',group:'Bras',type:'strength'},{name:'Triceps extension',group:'Bras',type:'strength'},
   {name:'Abdominal',group:'Abdos',type:'strength'},
   {name:'Vélo elliptique',group:'Cardio',type:'cardio'},{name:'Escaliers mécaniques',group:'Cardio',type:'cardio'},
   {name:"Vélo d'entraînement",group:'Cardio',type:'cardio'},{name:'Rameur',group:'Cardio',type:'cardio'},
@@ -782,6 +803,7 @@ function runMigrations(){
   if(v<2){ migrateV2(); }
   if(v<3){ migrateV3(); }
   if(v<4){ migrateV4(); }
+  if(v<5){ migrateV5(); }
   state.settings.dataVersion=DATA_VERSION;
 }
 
@@ -857,6 +879,14 @@ function migrateV4(){
   if(!machineByName('Incline press')) state.machines.push({id:uid(),name:'Incline press',group:'Épaules',type:'strength'});
   if(!machineByName('Vélo de cycling')) state.machines.push({id:uid(),name:'Vélo de cycling',group:'Cardio',type:'cardio'});
   if(!machineByName('Air bike')) state.machines.push({id:uid(),name:'Air bike',group:'Cardio',type:'cardio'});
+}
+
+/** Migration v5 (app alpha-v1.10) : nouvelles machines Triceps extension et
+    Chest press (poignée vers le haut) ; garantit la présence d'Incline press. */
+function migrateV5(){
+  if(!machineByName('Triceps extension')) state.machines.push({id:uid(),name:'Triceps extension',group:'Bras',type:'strength'});
+  if(!machineByName('Chest press (poignée vers le haut)')) state.machines.push({id:uid(),name:'Chest press (poignée vers le haut)',group:'Pectoraux',type:'strength'});
+  if(!machineByName('Incline press')) state.machines.push({id:uid(),name:'Incline press',group:'Épaules',type:'strength'});
 }
 
 /** Lit l'état depuis localStorage (avec migration des anciennes clés). */
@@ -994,11 +1024,13 @@ function priorSuccess(x){
   const k=chronoKey(x);
   return state.exercises.filter(e=>e.machineId===x.machineId && e.id!==x.id && e.status!=='fail' && e.status!=='tbd' && chronoKey(e)<k);
 }
-/** Record de RÉPÉTITIONS : strictement plus de répétitions que tous les réussis précédents. */
+/** Répétitions TOTALES d'un exercice = séries × répétitions (ex : 3×15 = 45). */
+function totalReps(x){ return Number(x.sets)*Number(x.reps); }
+/** Record de RÉPÉTITIONS : strictement plus de répétitions TOTALES que tous les réussis précédents. */
 function isRepsRecordExercise(x){
-  if(x.status==='fail' || x.status==='tbd' || !(Number(x.reps)>0)) return false;
-  const prior=priorSuccess(x).map(e=>Number(e.reps));
-  return prior.length>0 && Number(x.reps)>Math.max(...prior);
+  if(x.status==='fail' || x.status==='tbd' || !(totalReps(x)>0)) return false;
+  const prior=priorSuccess(x).map(totalReps);
+  return prior.length>0 && totalReps(x)>Math.max(...prior);
 }
 /** Nombre d'exercices par groupe musculaire pour la semaine en cours. */
 function weekGroupCounts(){
@@ -1091,8 +1123,13 @@ function closeOverlays(){
   });
   syncBodyLock();
 }
-/** Fige le défilement de l'arrière-plan tant qu'un écran superposé est ouvert. */
-function syncBodyLock(){ document.body.classList.toggle('lock',anyOverlayOpen()); }
+/** Fige le défilement de l'arrière-plan tant qu'une surface superposée est ouverte
+    (écrans plein écran, feuille d'exercice, zoom photo, info, confirmation). */
+function syncBodyLock(){
+  const ids=['sheet-bg','zoom-bg','info-bg','confirm-bg'];
+  const any=anyOverlayOpen()||ids.some(id=>{const e=document.getElementById(id);return e&&e.classList.contains('open');});
+  document.body.classList.toggle('lock',any);
+}
 
 /** Affiche/masque les boutons flottants (visibles seulement sur "Aujourd'hui",
     hors écran superposé, et pas pendant le repos). */
@@ -1200,11 +1237,11 @@ function bodyweightHTML(){
     <div class="rec bwrow"><span>${fmtDate(e.date)}</span><b><span class="bwval">${e.weight} kg</span>
       <button class="bwdel" onclick="deleteBodyweight('${e.id}')" aria-label="Supprimer cette mesure">✕</button></b></div>`).join('');
   return `<div class="card">
-    <div class="row" style="gap:10px">
-      <input type="text" id="bw-input" inputmode="decimal" autocomplete="off" placeholder="${last?('ex : '+last.weight):'ex : 78,5'}" value="${todayEntry?todayEntry.weight:''}" style="flex:1" aria-label="Poids du jour en kilogrammes">
-      <button class="btn sm" style="flex:none" onclick="saveBodyweight()">${todayEntry?'Mettre à jour':'Enregistrer'}</button>
+    <div class="bwform">
+      <input type="text" id="bw-input" inputmode="decimal" autocomplete="off" placeholder="${last?('ex : '+last.weight):'ex : 78,5'}" value="${todayEntry?todayEntry.weight:''}" aria-label="Poids du jour en kilogrammes">
+      <button class="btn sm" onclick="saveBodyweight()">${todayEntry?'Mettre à jour':'Enregistrer'}</button>
     </div>
-    <p class="note">${last?('Dernière mesure : '+last.weight+' kg le '+fmtDate(last.date)+'.'):'Note ton poids régulièrement (une mesure par jour, la dernière saisie du jour remplace la précédente).'}</p>
+    <p class="note" style="text-align:center">${last?('Dernière mesure : '+last.weight+' kg le '+fmtDate(last.date)+'.'):'Note ton poids régulièrement (une mesure par jour, la dernière saisie remplace celle du jour).'}</p>
     ${curve}${list.length?recentRows:''}</div>`;
 }
 /** Enregistre (ou met à jour) le poids du jour. */
@@ -1284,7 +1321,7 @@ function renderWeek(){
       <div class="goalmsg">${msg}<small>${sub}</small></div></div>
       <div class="week">${daysHtml}</div>
       <p class="note" style="margin-bottom:0; text-align:center">Touche un jour validé ✓ pour voir le récap de la séance.</p></div>
-    <h2>Régularité</h2><div class="card">${histHtml}</div>
+    <h2>Régularité</h2><div class="card"><div class="histwrap">${histHtml}</div></div>
     <h2>Équilibre (cette semaine)</h2><div class="card">${balanceHTML()}</div>
     <h2>Volume de musculation <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">· cette semaine</span></h2>
     <div class="card"><div class="row between"><span class="muted">Tonnage total soulevé<span class="info" onclick="infoVolume()">i</span></span><b style="font-size:20px">${weekVolume().toLocaleString('fr-CH')} kg</b></div></div>
@@ -1363,7 +1400,7 @@ function recordTimelineHTML(id){
     </div>`).join('');
   };
   return `<h2 style="margin-top:2px">Poids</h2>${timeline(x=>x.weight,'kg')}
-    <h2>Répétitions</h2>${timeline(x=>x.reps,'rép')}`;
+    <h2>Répétitions <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">· totales (séries × reps)</span></h2>${timeline(totalReps,'rép')}`;
 }
 /** Affiche/masque le fil des records dans la fiche machine. */
 function toggleRecordFeed(id){
@@ -1440,9 +1477,9 @@ function openMachine(id){
       if(okEx.length){
         const maxW=Math.max(...weights), recEx=okEx.find(x=>Number(x.weight)===maxW);
         const max1=Math.max(...okEx.map(ex1rm));
-        const maxR=Math.max(...okEx.map(x=>Number(x.reps))), recR=okEx.find(x=>Number(x.reps)===maxR);
+        const maxR=Math.max(...okEx.map(totalReps)), recR=okEx.find(x=>totalReps(x)===maxR);
         recRows=`<div class="rec"><span>🏆 Poids max</span><b>${maxW} kg <small>le ${fmtDate(recEx.date)}</small></b></div>
-        <div class="rec"><span>🔁 Répétitions max</span><b>${maxR} rép <small>le ${fmtDate(recR.date)}</small></b></div>
+        <div class="rec"><span>🔁 Répétitions max</span><b>${maxR} rép <small>(${recR.sets}×${recR.reps}) le ${fmtDate(recR.date)}</small></b></div>
         <div class="rec"><span>🔩 Volume max<span class="info" onclick="infoVolume()">i</span></span><b>${bestV.v} kg <small>le ${fmtDate(bestV.x.date)}</small></b></div>
         <div class="rec"><span>1RM estimé<span class="info" onclick="info1RM()">i</span></span><b>${max1} kg</b></div>`;
       } else {
@@ -1475,6 +1512,7 @@ function openMachine(id){
     </div>
     ${cardio?'':`<div class="card" id="record-feed" style="display:none"></div>`}
     ${lastCommentHTML(id,false)}
+    ${cardio?'':streakHTML(id)}
     ${chart}${records}${body}`;
   initCharts(document.getElementById('screen-machine-inner'));
   screen.scrollTop=0;                                 // afficher le haut de l'écran
@@ -1489,7 +1527,8 @@ function toggleFav(id){
   openMachine(id);                                   // met à jour l'étoile
   toast(m.fav?'Ajoutée aux favoris ★':'Retirée des favoris');
 }
-function closeMachine(){ const sc=document.getElementById('screen-machine'); sc.classList.remove('open'); setTimeout(()=>{ if(!sc.classList.contains('open')) document.getElementById('screen-machine-inner').innerHTML=''; },350); syncBodyLock(); updateFloating(); }
+function closeMachine(){ if(currentTab==='machines') renderMachines();      // reflète favoris & co derrière
+  const sc=document.getElementById('screen-machine'); sc.classList.remove('open'); setTimeout(()=>{ if(!sc.classList.contains('open')) document.getElementById('screen-machine-inner').innerHTML=''; },350); syncBodyLock(); updateFloating(); }
 
 /** Onglet "Réglages". */
 function renderSettings(){
@@ -1534,6 +1573,11 @@ const ACCENT_PALETTE=[
   {hex:'#f472b6',name:'Rose'},
   {hex:'#fb923c',name:'Orange'},
   {hex:'#f87171',name:'Rouge'},
+  {hex:'#facc15',name:'Jaune'},
+  {hex:'#34d399',name:'Émeraude'},
+  {hex:'#2dd4bf',name:'Sarcelle'},
+  {hex:'#818cf8',name:'Indigo'},
+  {hex:'#e879f9',name:'Fuchsia'},
 ];
 /** Applique la couleur d'accent au document (tous les dérivés suivent via color-mix). */
 function applyAccent(){ document.documentElement.style.setProperty('--accent', state.settings.accent||'#c5f24a'); }
@@ -1623,7 +1667,7 @@ const PROGRAMS=[
    machines:['Leg press','Seated leg curl','Hip abduction','Pulldown','Rear deltoid','Biceps curl']},
   // Perte de poids : haut du corps + 2×20 min cardio (Rameur en début, Tapis en fin)
   {name:'PKF-Edo-Upper-C',
-   machines:['Rameur','Chest press','Pulldown','Row','Shoulder press','Rear deltoid','Biceps curl','Abdominal','Tapis de course']},
+   machines:['Vélo elliptique','Chest press','Pectoral fly','Pulldown','Row','Shoulder press','Rear deltoid','Biceps curl','Triceps extension','Tapis de course']},
   // Perte de poids : bas du corps + 2×20 min cardio (Vélo d'entraînement puis Vélo couché)
   {name:'PKF-Edo-Lower-C',
    machines:["Vélo d'entraînement",'Leg press','Leg extension','Seated leg curl','Hip adduction','Hip abduction','Abdominal','Vélo couché']},
@@ -1643,7 +1687,9 @@ const MACHINE_META={
 function machineForProgram(name){
   let key=baseName(name);
   key=PROGRAM_ALIASES[key]||key;
-  return state.machines.find(m=>baseName(m.name)===key)||null;
+  const exact=state.machines.find(m=>(m.name||'').trim().toLowerCase()===(name||'').trim().toLowerCase());
+  if(exact) return exact;                                       // nom complet exact d'abord
+  return state.machines.find(m=>baseName(m.name)===key)||null;  // sinon nom de base (1re occurrence)
 }
 
 /* ===== Bonnes pratiques & conseils par machine (clé = nom de base) ===== */
@@ -1707,7 +1753,7 @@ function showMachineTips(id){
 function showInfoHTML(title,html){
   document.getElementById('info-title').textContent=title;
   document.getElementById('info-msg').innerHTML=html;
-  document.getElementById('info-bg').classList.add('open');
+  document.getElementById('info-bg').classList.add('open'); syncBodyLock();
 }
 /** Programmes triés par ordre alphabétique (règle d'affichage permanente). */
 function sortedPrograms(){ return [...PROGRAMS].sort((a,b)=>a.name.localeCompare(b.name,'fr',{sensitivity:'base'})); }
@@ -1720,7 +1766,7 @@ function applyProgram(name){
   const doIt=()=>{
     const d=todayISO();
     found.forEach(m=>{
-      const last=lastSuccessForMachine(m.id);                               // dernier RÉUSSI
+      const last=lastExerciseFor(m.id);                                     // TOUJOURS le dernier enregistré (quel que soit son statut)
       if(last){ state.exercises.push(cloneMandatory(last)); }               // pré-rempli via la mini-mémoire
       else if(m.type==='cardio'){ state.exercises.push({id:uid(),date:d,order:nextOrder(d),machineId:m.id,programme:'Manuel',niveau:1,duree:30,rpm:'',distance:'',calories:'',incline:'',speed:'',comment:''}); }
       else { state.exercises.push({id:uid(),date:d,order:nextOrder(d),machineId:m.id,weight:0,sets:3,reps:10,status:'tbd',configs:[],comment:''}); }
@@ -1820,11 +1866,14 @@ function startRest(sec){
   persistRest(); showRest(); restUI(); startInterval();
 }
 function addRest(s){
-  if(restDone){ // relance un court repos si on rajoute du temps après la fin
+  if(restDone){
+    if(s<=0) return;                                  // pas de relance avec un retrait
     restDone=false; document.getElementById('rest-time').classList.remove('done');
     restEnd=Date.now()+s*1000; restTot=s;
   } else {
-    restEnd+=s*1000; restTot=Math.max(restTot,restRemaining());
+    restEnd+=s*1000;
+    if(restRemaining()<=0){ finishRest(); return; }   // retirer sous 0 → repos terminé
+    restTot=Math.max(restTot,restRemaining());
   }
   persistRest(); startInterval(); restUI();
 }
@@ -1861,18 +1910,18 @@ function askConfirm(msg,onYes,yesLabel){
   document.getElementById('confirm-msg').textContent=msg;
   const y=document.getElementById('confirm-yes'); y.textContent=yesLabel||'Confirmer';
   confirmYes=onYes;
-  document.getElementById('confirm-bg').classList.add('open');
+  document.getElementById('confirm-bg').classList.add('open'); syncBodyLock();
 }
-function closeConfirm(){ document.getElementById('confirm-bg').classList.remove('open'); confirmYes=null; }
+function closeConfirm(){ document.getElementById('confirm-bg').classList.remove('open'); confirmYes=null; syncBodyLock(); }
 document.getElementById('confirm-yes').onclick=()=>{ const cb=confirmYes; closeConfirm(); if(cb) cb(); };
 document.getElementById('confirm-no').onclick=closeConfirm;
 document.getElementById('confirm-bg').addEventListener('click',e=>{ if(e.target.id==='confirm-bg') closeConfirm(); });
 
-function showInfo(title,msg){ document.getElementById('info-title').textContent=title; document.getElementById('info-msg').textContent=msg; document.getElementById('info-bg').classList.add('open'); }
-function closeInfo(){ document.getElementById('info-bg').classList.remove('open'); }
+function showInfo(title,msg){ document.getElementById('info-title').textContent=title; document.getElementById('info-msg').textContent=msg; document.getElementById('info-bg').classList.add('open'); syncBodyLock(); }
+function closeInfo(){ document.getElementById('info-bg').classList.remove('open'); syncBodyLock(); }
 /* ----- Zoom photo machine ----- */
-function openPhotoZoom(url){ if(!url) return; document.getElementById('zoom-img').src=url; document.getElementById('zoom-bg').classList.add('open'); }
-function closePhotoZoom(){ document.getElementById('zoom-bg').classList.remove('open'); }
+function openPhotoZoom(url){ if(!url) return; document.getElementById('zoom-img').src=url; document.getElementById('zoom-bg').classList.add('open'); syncBodyLock(); }
+function closePhotoZoom(){ document.getElementById('zoom-bg').classList.remove('open'); syncBodyLock(); }
 function info1RM(){ showInfo('Qu\u2019est-ce que le 1RM ?','Le 1RM (« one-rep max », ou répétition maximale) est le poids le plus lourd que tu pourrais soulever une seule fois sur cet exercice. Le tester en vrai étant risqué, l\'app l\'estime à partir de ton poids et de tes répétitions (formule d\'Epley : poids × (1 + reps ÷ 30)). C\'est un repère pratique pour suivre ta force globale, même quand tu changes de nombre de répétitions.'); }
 function infoVolume(){ showInfo('Qu\u2019est-ce que le volume ?','Le volume (ou tonnage) d\'un exercice = poids × séries × répétitions. C\'est la charge totale soulevée sur l\'exercice. C\'est souvent le meilleur indicateur de progression réelle : tu peux progresser en volume même sans augmenter le poids (plus de séries ou de répétitions).'); }
 document.getElementById('info-bg').addEventListener('click',e=>{ if(e.target.id==='info-bg') closeInfo(); });
@@ -1987,26 +2036,57 @@ function lastExerciseFor(id){
   const l=state.exercises.filter(x=>x.machineId===id).sort((a,b)=>chronoKey(b).localeCompare(chronoKey(a)));
   return l[0]||null;
 }
+/** Étiquette courte du statut du dernier exercice (muscu uniquement). */
+function lastStatusLabel(x){
+  if(isCardioMachine(x.machineId)) return '';
+  const map={success:'<span class="lcst ok">Réussi ✓</span>',fail:'<span class="lcst ko">Échoué ✗</span>',tbd:'<span class="lcst nd">TBD</span>',partial:'<span class="lcst nd">Partiel</span>'};
+  return map[x.status]||'';
+}
+/** Série en cours : nombre d'exercices consécutifs (du plus récent en remontant)
+    avec les MÊMES poids, séries et répétitions. Affiché à partir de 2. */
+function identicalStreak(id){
+  const l=state.exercises.filter(x=>x.machineId===id && !isCardioMachine(x.machineId))
+    .sort((a,b)=>chronoKey(b).localeCompare(chronoKey(a)));
+  if(l.length<2) return null;
+  const ref=l[0]; let n=1;
+  for(let i=1;i<l.length;i++){
+    const e=l[i];
+    if(Number(e.weight)===Number(ref.weight)&&Number(e.sets)===Number(ref.sets)&&Number(e.reps)===Number(ref.reps)) n++;
+    else break;
+  }
+  return n>=2?{count:n,weight:ref.weight,sets:ref.sets,reps:ref.reps}:null;
+}
+/** Petit encart « série de N exercices identiques ». */
+function streakHTML(id){
+  const st=identicalStreak(id);
+  if(!st) return '';
+  return `<div class="streakbox">🔁 Série de <b>${st.count}</b> exercices identiques · ${st.weight} kg — ${st.sets}×${st.reps}</div>`;
+}
 /** HTML de l'encart « dernier commentaire » :
     - pas de séance précédente sur la machine → rien ;
-    - séance précédente AVEC commentaire → le commentaire (+ bouton Copier dans le formulaire) ;
-    - séance précédente SANS commentaire → mention explicite. */
+    - TOUJOURS basé sur le dernier exercice enregistré, avec son STATUT ;
+    - sans commentaire ce jour-là → mention ; si AUCUN commentaire n'a jamais
+      été laissé sur la machine → mention explicite dédiée. */
 function lastCommentHTML(id,withCopy){
   const last=id?lastExerciseFor(id):null;
   if(!last) return '';
+  const stLbl=lastStatusLabel(last);
   if(!(last.comment||'').trim()){
+    const everCommented=state.exercises.some(x=>x.machineId===id && (x.comment||'').trim());
+    const msg=everCommented?"Aucun commentaire n'avait été laissé lors de cette séance."
+                           :"Aucun commentaire n'a encore jamais été laissé sur cette machine.";
     return `<div class="lastcmt muted-box"><div class="lcrow"><div class="lcbody">
-      <span class="who">Séance précédente · ${fmtDate(last.date)}</span>Aucun commentaire n'avait été laissé.</div></div></div>`;
+      <span class="who">Dernier exercice · ${fmtDate(last.date)} ${stLbl}</span>${msg}</div></div></div>`;
   }
   return `<div class="lastcmt"><div class="lcrow">
-    <div class="lcbody"><span class="who">Dernier commentaire · ${fmtDate(last.date)}</span>${esc(last.comment)}</div>
+    <div class="lcbody"><span class="who">Dernier exercice · ${fmtDate(last.date)} ${stLbl}</span>${esc(last.comment)}</div>
     ${withCopy?`<button type="button" class="lccopy" onclick="copyLastComment()" aria-label="Reprendre ce commentaire">⧉ Copier</button>`:''}
   </div></div>`;
 }
 /** Met à jour l'encart du formulaire pour la machine choisie. */
 function showLastComment(id){
   const el=document.getElementById('last-comment');
-  const html=lastCommentHTML(id,true);
+  const html=lastCommentHTML(id,true)+(id&&!isCardioMachine(id)?streakHTML(id):'');
   el.innerHTML=html;
   el.style.display=html?'block':'none';
 }
@@ -2059,12 +2139,12 @@ function openForm(opts){
     document.getElementById('f-delete').style.display='none';
   }
 
-  document.getElementById('sheet-bg').classList.add('open');
+  document.getElementById('sheet-bg').classList.add('open'); syncBodyLock();
   const sheet=document.getElementById('sheet');
   sheet.scrollTop=0;                                        // toujours ouvrir la feuille en haut
   setTimeout(()=>{ sheet.classList.add('open'); sheet.scrollTop=0; },10);
 }
-function closeForm(){ document.getElementById('sheet').classList.remove('open'); setTimeout(()=>document.getElementById('sheet-bg').classList.remove('open'),260); }
+function closeForm(){ document.getElementById('sheet').classList.remove('open'); setTimeout(()=>{ document.getElementById('sheet-bg').classList.remove('open'); syncBodyLock(); },260); }
 
 /** Valide puis enregistre l'exercice (création ou modification). */
 function saveExercise(){
@@ -2178,8 +2258,8 @@ function openTrash(){
         <div class="top"><div class="nm">${esc(machineName(t.machineId))}</div><span class="badge">${fmtDate(t.date)}</span></div>
         <div class="row between" style="margin-top:4px"><span class="muted" style="font-size:13px">${trashSummary(t)} · supprimé le ${fmtDate(t.deletedAt)}</span></div>
         <div class="row" style="gap:10px;margin-top:10px">
-          <button class="btn sm" style="flex:1" onclick="restoreFromTrash('${t.id}')">↩ Restaurer</button>
-          <button class="btn ghost sm" style="flex:1" onclick="purgeFromTrash('${t.id}')">Supprimer définitivement</button>
+          <button class="btn sm" style="flex:1" onclick="restoreFromTrash('${t.id}')">Restaurer</button>
+          <button class="btn danger sm" style="flex:1" onclick="purgeFromTrash('${t.id}')">Supprimer</button>
         </div></div>`).join('')
     : `<div class="card"><div class="empty">La corbeille est vide.</div></div>`;
   document.getElementById('screen-trash-inner').innerHTML=`
